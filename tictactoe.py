@@ -1,18 +1,20 @@
 from readchar import readkey
 import os
 
+
+EMPTY = " "
+
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
 
 
 class TicTacToe:
-
     def __init__(self):
-        self.cells = [" "] * 9
+        self.cells = [EMPTY] * 9
         self.valid_keys = [str(i) for i in range(1, 10)]
 
     def cell_taken(self, index):
-        return True if self.cells[index - 1] != " " else False
+        return True if self.cells[index - 1] != EMPTY else False
 
     def set_cell(self, index, player):
         self.cells[index - 1] = player
@@ -21,7 +23,6 @@ class TicTacToe:
 
     def get_board(self, override=None):
         c = self.cells if override is None else override
-
         return f"""    ╻   ╻
   {c[6]} ┃ {c[7]} ┃ {c[8]}
 ╺━━━╋━━━╋━━━╸
@@ -66,15 +67,12 @@ class TicTacToe:
                 clear_screen()
 
             cell = int(key)
-            if self.cells[cell - 1] == " ":
-                self.set_cell(cell, player)
-                if self.check_win():
-                    print(self.get_board())
-                    print(f"Player {player} wins!")
-                    clear_screen()
-                    break
-            else:
-                print("Cell is already taken. Choose another cell.")
+            self.set_cell(cell, player)
+            if self.check_win():
+                print(self.get_board())
+                print(f"Player {player} wins!")
+                clear_screen()
+                break
             clear_screen()
 
         if self.check_win():
@@ -86,7 +84,7 @@ class TicTacToe:
 
 
 def check_subset(subset):
-    return subset[0] != " " and all([x == subset[0] for x in subset])
+    return subset[0] != EMPTY and all([x == subset[0] for x in subset])
 
 
 if __name__ == "__main__":
