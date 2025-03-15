@@ -53,7 +53,7 @@ class Connect4:
   {n[0]}    {n[1]}    {n[2]}    {n[3]}    {n[4]}    {n[5]}    {n[6]}"""
 
 
-    def check_win(self, length=4, count=False):
+    def check_win(self, token, length=4, count=False):
         c = self.cells
         win_count = 0
         for i in range(6):
@@ -68,12 +68,11 @@ class Connect4:
                 if i <= 6 - length and j >= length - 1:
                     win_conditions.append([c[i + k][j - k] for k in range(length)])
 
-                wins = list(map(check_subset, win_conditions))
-                if any(wins):
-                    if not count:
-                        return True
-                    else:
-                        win_count += sum(wins)
+                outcomes = [all([x == token for x in subset]) for subset in win_conditions]
+                if count:
+                    win_count += sum(outcomes)
+                elif any(outcomes):
+                    return True
         if count:
             return win_count
         return False
@@ -84,7 +83,7 @@ class Connect4:
         print("Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column.")
         print(self.get_board())
         print("Press any key to start.")
-        readkey()
+        # readkey()
         clear_screen()
 
         token = ""
@@ -94,14 +93,14 @@ class Connect4:
             col = self.choose_column(player, token, other_token)
 
             self.place_token(col, token)
-            if self.check_win():
+            if self.check_win(token):
                 print(self.get_board())
                 print(f"Player {token} wins!")
                 clear_screen()
                 break
             clear_screen()
 
-        if self.check_win():
+        if self.check_win(token):
             print(f"Player {token} won!")
         else:
             print("The game ended in a tie.")
@@ -148,36 +147,34 @@ class Connect4:
         remaining_columns = [x for x in self.cols if type(x)==int]
         for col in remaining_columns:
             self.place_token(col, token)
-            win = self.check_win()
+            win = self.check_win(token)
             self.remove_token(col)
             if win:
                 return col
 
         for col in remaining_columns:
             self.place_token(col, other_token)
-            win = self.check_win()
+            win = self.check_win(other_token)
             self.remove_token(col)
             if win:
                 return col
 
         for length in [3, 2]:
-            highest_wins = ([], 0)
+            baseline = self.check_win(token, length, count=True)
+            highest_wins = ([], baseline)
             for col in remaining_columns:
                 self.place_token(col, token)
-                wins = self.check_win(length, count=True)
+                wins = self.check_win(token, length, count=True)
                 self.remove_token(col)
                 if wins > highest_wins[1]:
                     highest_wins = ([col], wins)
                 elif wins == highest_wins[1]:
                     highest_wins[0].append(col)
-            if highest_wins[1] > 0:
+            if highest_wins[1] > baseline:
                 return random.choice(highest_wins[0])
         return random.choice(remaining_columns)
 
-def check_subset(subset):
-    return subset[0] != EMPTY and all([x == subset[0] for x in subset])
-
 
 if __name__ == "__main__":
-    game = Connect4("Human", "AI")
+    game = Connect4("AI", "AI")
     game.play()
