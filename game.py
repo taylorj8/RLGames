@@ -29,7 +29,7 @@ def get_from_args(args):
         player1 = param_or_default(args, "-p1", "minimax")
         player2 = param_or_default(args, "-p2", "algorithm")
         games = param_or_default(args, "-g", 1)
-        max_depth = param_or_default(args, "-d", 10)
+        max_depth = param_or_default(args, "-d", sys.maxsize)
     except:
         print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
         exit()
@@ -126,6 +126,8 @@ class Game(ABC):
                 move = self.algorithm_choose_move(player.token)
             case "minimax":
                 move = self.minimax_choose_move(player)
+            case "minimax_ab":
+                move = self.minimax_choose_move(player, float("-inf"), float("inf"))
             case "qlearn":
                 move = self.qlearn_choose_move(player.token)
             case _:
@@ -145,7 +147,7 @@ class Game(ABC):
     def evaluate_early(self, player: str, opponent: str) -> int:
         pass
 
-    def minimax_choose_move(self, player):
+    def minimax_choose_move(self, player, alpha=None, beta=None):
         best_score = float("-inf")
         best_move = 0
 
@@ -153,7 +155,7 @@ class Game(ABC):
         opponent = self.get_other(player)
         for move in remaining_moves:
             self.place_token(move, player.token)
-            score = self.minimax(player, opponent, 0, False, self.max_depth)
+            score = self.minimax(player, opponent, 0, False, self.max_depth, alpha, beta)
             self.remove_token(move)
 
             if score > best_score:
@@ -161,11 +163,11 @@ class Game(ABC):
                 best_score = score
         return best_move
 
-    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth):
+    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth, alpha, beta):
         if self.check_win(player):
-            return 10000 - depth
+            return 10 - depth
         elif self.check_win(opponent):
-            return -10000 + depth
+            return -10 + depth
 
         remaining_moves = self.get_remaining_moves()
         if len(remaining_moves) == 0:
@@ -178,14 +180,24 @@ class Game(ABC):
             best_score = float("-inf")
             for move in remaining_moves:
                 self.place_token(move, player)
-                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth))
+                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
                 self.remove_token(move)
+
+                if alpha is not None:
+                    alpha = max(alpha, best_score)
+                    if beta <= alpha:
+                        break
         else:
             best_score = float("inf")
             for move in remaining_moves:
                 self.place_token(move, opponent)
-                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth))
+                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
                 self.remove_token(move)
+
+                if beta is not None:
+                    beta = min(beta, best_score)
+                    if beta <= alpha:
+                        break
         return best_score
 
     @abstractmethod
