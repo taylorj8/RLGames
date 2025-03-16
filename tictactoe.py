@@ -3,14 +3,9 @@ import time
 from heapq import heappush, heappop
 from typing import override
 from readchar import readkey
-import os
-from game import Game
-from player import Player
+from game import Game, clear_screen
 
 BLANK = " "
-
-def clear_screen():
-    os.system('cls' if os.name=='nt' else 'clear')
 
 def check_subset(subset, token=None):
     if token is None:
@@ -23,8 +18,8 @@ class TicTacToe(Game):
     start_instructions = "Welcome to TicTacToe! The game is played using the numpad. The numbers correspond to squares as follows:"
     winning_subsets = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
 
-    def __init__(self, player1, player2, visualise):
-        super().__init__(player1, player2, visualise)
+    def __init__(self, player1, player2, max_depth, visualise):
+        super().__init__(player1, player2, max_depth, visualise)
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
 
@@ -67,6 +62,13 @@ class TicTacToe(Game):
     def count_doubles(self, token):
         subsets = map(lambda x: [self.cells[i] for i in x], self.winning_subsets)
         return sum(1 for subset in subsets if subset.count(token) == 2 and subset.count(BLANK) == 1)
+
+    @override
+    def evaluate_early(self, player, opponent) -> int:
+        good_doubles = self.count_doubles(player)
+        bad_doubles = self.count_doubles(opponent)
+        return good_doubles - bad_doubles
+
 
     @override
     def human_choose_move(self, token):

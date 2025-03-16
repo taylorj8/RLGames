@@ -8,13 +8,33 @@ from typing import Tuple
 from readchar import readkey
 from tqdm import trange
 
-from util import get_from_args
-
 BLANK = " "
 
 
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
+
+# get the value of a parameter or return the default value
+def param_or_default(args, flag, default):
+    if flag in args:
+        value = args[args.index(flag) + 1]
+        if value.isdigit():
+            return int(value)
+        return args[args.index(flag) + 1].lower()
+    return default
+
+# get the values of the parameters from the command line arguments
+def get_from_args(args):
+    try:
+        player1 = param_or_default(args, "-p1", "minimax")
+        player2 = param_or_default(args, "-p2", "algorithm")
+        games = param_or_default(args, "-g", 1)
+        max_depth = param_or_default(args, "-d", 10)
+    except:
+        print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
+        exit()
+    return player1, player2, games, max_depth
+
 
 @dataclass
 class Player:
@@ -25,10 +45,11 @@ class Game(ABC):
     max_moves = 0
     start_instructions = ""
 
-    def __init__(self, player1: Player, player2: Player, visualise: bool):
+    def __init__(self, player1: Player, player2: Player, max_depth: int, visualise: bool):
         self.visualise = visualise
         self.players = (player1, player2)
         self.cells = []
+        self.max_depth = max_depth
         self.remaining_cells = None
 
     def print(self, message: str):
@@ -89,12 +110,12 @@ class Game(ABC):
         for i in range(self.max_moves):
             player = players[i % 2]
             col = self.choose_move(player)
+            if self.visualise:
+                clear_screen()
 
             self.place_token(col, player.token)
             if self.check_win():
                 break
-            if self.visualise:
-                clear_screen()
         return player.token
 
     def choose_move(self, player: Player) -> int:
@@ -120,15 +141,19 @@ class Game(ABC):
     def algorithm_choose_move(self, token: str):
         pass
 
-    def minimax_choose_move(self, player: Player):
+    @abstractmethod
+    def evaluate_early(self, player: str, opponent: str) -> int:
+        pass
+
+    def minimax_choose_move(self, player):
         best_score = float("-inf")
         best_move = 0
 
         remaining_moves = self.get_remaining_moves()
-        opponent = self.get_other_player(player)
+        opponent = self.get_other(player)
         for move in remaining_moves:
             self.place_token(move, player.token)
-            score = self.minimax(player, opponent, 0, False)
+            score = self.minimax(player, opponent, 0, False, self.max_depth)
             self.remove_token(move)
 
             if score > best_score:
@@ -136,27 +161,30 @@ class Game(ABC):
                 best_score = score
         return best_move
 
-    def minimax(self, player: Player, opponent: Player, depth: int, maxing: bool):
-        if self.check_win(player.token):
-            return 10 - depth
-        elif self.check_win(opponent.token):
-            return -10 + depth
+    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth):
+        if self.check_win(player):
+            return 10000 - depth
+        elif self.check_win(opponent):
+            return -10000 + depth
 
         remaining_moves = self.get_remaining_moves()
         if len(remaining_moves) == 0:
             return 0
 
+        if depth == max_depth:
+            return self.evaluate_early(player, opponent)
+
         if maxing:
             best_score = float("-inf")
             for move in remaining_moves:
-                self.place_token(move, player.token)
-                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing))
+                self.place_token(move, player)
+                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth))
                 self.remove_token(move)
         else:
             best_score = float("inf")
             for move in remaining_moves:
-                self.place_token(move, opponent.token)
-                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing))
+                self.place_token(move, opponent)
+                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth))
                 self.remove_token(move)
         return best_score
 
@@ -178,7 +206,7 @@ class Game(ABC):
     @classmethod
     def start(cls):
         args = sys.argv
-        player1, player2, games = get_from_args(args)
+        player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
 
         token1, token2 = cls.get_tokens()
@@ -187,7 +215,7 @@ class Game(ABC):
 
         stats = {player1.token: 0, player2.token: 0, "Tie": 0}
         for i in trange(games):
-            game = cls(player1, player2, visualise)
+            game = cls(player1, player2, max_depth, visualise)
 
             winner = game.play(reverse_order=bool(i % 2))
             stats[winner] += 1

@@ -1,7 +1,6 @@
 import random
 import time
 from typing import override
-
 from readchar import readkey
 
 from game import Game, clear_screen
@@ -13,8 +12,8 @@ class Connect4(Game):
     max_moves = 42
     start_instructions = "Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column."
 
-    def __init__(self, player1, player2, visualise):
-        super().__init__(player1, player2, visualise)
+    def __init__(self, player1, player2, max_depth, visualise):
+        super().__init__(player1, player2, max_depth, visualise)
         self.cells = [[BLANK] * 7 for _ in range(6)]
         self.cols = [x for x in range(1, 8)]
 
@@ -88,9 +87,9 @@ class Connect4(Game):
                     return True
         return False
 
-    def count_tokens(self, token, threshold):
+    def count_runs(self, token, threshold):
         c = self.cells
-        token_count = 0
+        run_count = 0
         for i in range(6):
             for j in range(7):
                 runs = []
@@ -103,8 +102,18 @@ class Connect4(Game):
                 if i <= 2 and j >= 3:
                     runs.append([c[i + k][j - k] for k in range(4)])
 
-                token_count += sum(1 for subset in runs if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
-        return token_count
+                run_count += sum(1 for subset in runs if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
+        return run_count
+
+    @override
+    def evaluate_early(self, player, opponent) -> int:
+        good_runs_of_three = self.count_runs(player, 3)
+        good_runs_of_two = self.count_runs(player, 2)
+        bad_runs_of_three = self.count_runs(opponent, 3)
+        bad_runs_of_two = self.count_runs(opponent, 2)
+
+        return good_runs_of_three * 2 + good_runs_of_two - bad_runs_of_three * 2 - bad_runs_of_two
+
 
     @override
     def human_choose_move(self, token):
@@ -143,11 +152,11 @@ class Connect4(Game):
                     return col
 
         for threshold in [3, 2]:
-            baseline = self.count_tokens(token, threshold)
+            baseline = self.count_runs(token, threshold)
             highest_wins = ([], baseline)
             for col in remaining_columns:
                 self.place_token(col, token)
-                wins = self.count_tokens(token, threshold)
+                wins = self.count_runs(token, threshold)
                 self.remove_token(col)
                 if wins > highest_wins[1]:
                     highest_wins = ([col], wins)
