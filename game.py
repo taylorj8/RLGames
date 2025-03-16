@@ -94,12 +94,12 @@ class Game(ABC):
         match player.type:
             case "human":
                 move = self.human_choose_move(player.token)
-            case "algorithm":
+            case "algo":
                 move = self.algorithm_choose_move(player.token)
             case "minimax":
                 move = self.minimax_choose_move(player)
-            case "qlearning":
-                move = self.qlearning_choose_move(player.token)
+            case "qlearn":
+                move = self.qlearn_choose_move(player.token)
             case _:
                 print("Invalid player type.")
                 exit()
@@ -136,7 +136,7 @@ class Game(ABC):
 
 
     @abstractmethod
-    def qlearning_choose_move(self, token: str):
+    def qlearn_choose_move(self, token: str):
         pass
 
     @staticmethod

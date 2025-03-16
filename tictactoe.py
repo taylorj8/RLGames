@@ -33,12 +33,15 @@ class TicTacToe(Game):
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
 
+    def get_remaining_moves(self):
+        return [x for x in self.remaining_cells if type(x) == int]
+
     def cell_taken(self, index):
         return True if self.cells[index - 1] != BLANK else False
 
     @override
-    def place_token(self, index, player):
-        self.cells[index - 1] = player
+    def place_token(self, index, token):
+        self.cells[index - 1] = token
         self.remaining_cells[index - 1] = "■"
 
     @override
@@ -87,7 +90,7 @@ class TicTacToe(Game):
             print(f"Player {token}\n{self.get_board()}")
             time.sleep(0.5)
 
-        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
+        remaining_cells = self.get_remaining_moves()
         for t in [token, self.get_other(token)]:
             for cell in remaining_cells:
                 self.place_token(cell, t)
@@ -110,51 +113,47 @@ class TicTacToe(Game):
         return random.choice(remaining_cells)
 
     def minimax_choose_move(self, player: Player):
-        moves_queue = []
-        other_player = self.get_other_player(player)
-        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
-        for move in remaining_cells:
+        best_score = float("-inf")
+        best_move = 0
+
+        remaining_moves = self.get_remaining_moves()
+        opponent = self.get_other_player(player)
+        for move in remaining_moves:
             self.place_token(move, player.token)
-            score = self.minimax(player, other_player, False)
-            heappush(moves_queue, (score, move))
+            score = self.minimax(player, opponent, 0, False)
             self.remove_token(move)
 
-        score, move = heappop(moves_queue)
-        return move
+            if score > best_score:
+                best_move = move
+                best_score = score
+        return best_move
 
-    def minimax(self, player: Player, opponent: Player, is_maximizing: bool):
+    def minimax(self, player: Player, opponent: Player, depth: int, maxing: bool):
         if self.check_win(player.token):  # Maximizing player wins
-            return 10
+            return 10 - depth
         elif self.check_win(opponent.token):  # Minimizing player wins
-            return -10
+            return -10 + depth
 
-        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
-        if len(remaining_cells) == 0:
+        remaining_moves = self.get_remaining_moves()
+        if len(remaining_moves) == 0:
             return 0
 
-        moves_queue = []
-        other_player = self.get_other_player(player)
-        for move in remaining_cells:
-            if is_maximizing:
+        if maxing:
+            best_score = float("-inf")
+            for move in remaining_moves:
                 self.place_token(move, player.token)
-            else :
+                best_score = max(best_score, self.minimax(player, opponent, depth+1, not maxing))
+                self.remove_token(move)
+        else:
+            best_score = float("inf")
+            for move in remaining_moves:
                 self.place_token(move, opponent.token)
-            score = self.minimax(player, opponent, not is_maximizing)
-            # priority queue - score is negated to make it descending
-            if is_maximizing:
-                score = -score
-            heappush(moves_queue, (score, move))
-            self.remove_token(move)
-
-        score, move = heappop(moves_queue)
-        # negate score again to return it to original value
-        if is_maximizing:
-            score = -score
-        return score
-
+                best_score = min(best_score, self.minimax(player, opponent, depth+1, not maxing))
+                self.remove_token(move)
+        return best_score
 
     @override
-    def qlearning_choose_move(self, token):
+    def qlearn_choose_move(self, token):
         # TODO
         pass
 

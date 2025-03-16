@@ -157,7 +157,7 @@ class Connect4(Game):
         pass
 
     @override
-    def qlearning_choose_move(self, token):
+    def qlearn_choose_move(self, token):
         # TODO
         pass
 
