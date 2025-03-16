@@ -44,6 +44,10 @@ class Connect4(Game):
                 return
 
     @override
+    def get_remaining_moves(self):
+        return [x for x in self.cols if type(x) == int]
+
+    @override
     def get_board(self, guide=None):
         c = self.cells
         n = self.cols
@@ -63,21 +67,23 @@ class Connect4(Game):
   {n[0]}    {n[1]}    {n[2]}    {n[3]}    {n[4]}    {n[5]}    {n[6]}"""
 
     @override
-    def check_win(self):
-        c = self.cells
+    def check_win(self, token=None):
         for i in range(6):
             for j in range(7):
                 potential_wins = []
                 if j <= 3:
-                    potential_wins.append([c[i][j + k] for k in range(4)])
+                    potential_wins.append([self.cells[i][j + k] for k in range(4)])
                 if i <= 2:
-                    potential_wins.append([c[i + k][j] for k in range(4)])
+                    potential_wins.append([self.cells[i + k][j] for k in range(4)])
                 if i <= 2 and j <= 3:
-                    potential_wins.append([c[i + k][j + k] for k in range(4)])
+                    potential_wins.append([self.cells[i + k][j + k] for k in range(4)])
                 if i <= 2 and j >= 3:
-                    potential_wins.append([c[i + k][j - k] for k in range(4)])
+                    potential_wins.append([self.cells[i + k][j - k] for k in range(4)])
 
-                outcomes = [subset[0] != BLANK and all([x == subset[0] for x in subset]) for subset in potential_wins]
+                if token is None:
+                    outcomes = [subset[0] != BLANK and all([x == subset[0] for x in subset]) for subset in potential_wins]
+                else:
+                    outcomes = [all([x == token for x in subset]) for subset in potential_wins]
                 if any(outcomes):
                     return True
         return False
@@ -127,7 +133,7 @@ class Connect4(Game):
             print(f"Player {token}\n{self.get_board()}")
             time.sleep(0.5)
 
-        remaining_columns = [x for x in self.cols if type(x)==int]
+        remaining_columns = self.get_remaining_moves()
         for t in [token, self.get_other(token)]:
             for col in remaining_columns:
                 self.place_token(col, t)
@@ -150,11 +156,6 @@ class Connect4(Game):
             if highest_wins[1] > baseline:
                 return random.choice(highest_wins[0])
         return random.choice(remaining_columns)
-
-    @override
-    def minimax_choose_move(self, token):
-        # TODO
-        pass
 
     @override
     def qlearn_choose_move(self, token):

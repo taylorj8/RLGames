@@ -112,46 +112,6 @@ class TicTacToe(Game):
             return random.choice(highest_count[0])
         return random.choice(remaining_cells)
 
-    def minimax_choose_move(self, player: Player):
-        best_score = float("-inf")
-        best_move = 0
-
-        remaining_moves = self.get_remaining_moves()
-        opponent = self.get_other_player(player)
-        for move in remaining_moves:
-            self.place_token(move, player.token)
-            score = self.minimax(player, opponent, 0, False)
-            self.remove_token(move)
-
-            if score > best_score:
-                best_move = move
-                best_score = score
-        return best_move
-
-    def minimax(self, player: Player, opponent: Player, depth: int, maxing: bool):
-        if self.check_win(player.token):  # Maximizing player wins
-            return 10 - depth
-        elif self.check_win(opponent.token):  # Minimizing player wins
-            return -10 + depth
-
-        remaining_moves = self.get_remaining_moves()
-        if len(remaining_moves) == 0:
-            return 0
-
-        if maxing:
-            best_score = float("-inf")
-            for move in remaining_moves:
-                self.place_token(move, player.token)
-                best_score = max(best_score, self.minimax(player, opponent, depth+1, not maxing))
-                self.remove_token(move)
-        else:
-            best_score = float("inf")
-            for move in remaining_moves:
-                self.place_token(move, opponent.token)
-                best_score = min(best_score, self.minimax(player, opponent, depth+1, not maxing))
-                self.remove_token(move)
-        return best_score
-
     @override
     def qlearn_choose_move(self, token):
         # TODO

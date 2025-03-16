@@ -8,7 +8,6 @@ from typing import Tuple
 from readchar import readkey
 from tqdm import trange
 
-from player import Player
 from util import get_from_args
 
 BLANK = " "
@@ -17,6 +16,10 @@ BLANK = " "
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
 
+@dataclass
+class Player:
+    type: str
+    token: str
 
 class Game(ABC):
     max_moves = 0
@@ -54,6 +57,10 @@ class Game(ABC):
 
     @abstractmethod
     def remove_token(self, pos):
+        pass
+
+    @abstractmethod
+    def get_remaining_moves(self):
         pass
 
     def play(self, reverse_order=False) -> str:
@@ -114,26 +121,44 @@ class Game(ABC):
         pass
 
     def minimax_choose_move(self, player: Player):
-        board_state = "".join(self.cells)
-        if board_state in player.move_cache:
-            move = player.move_cache[board_state]
-            return player.move_cache[board_state]
+        best_score = float("-inf")
+        best_move = 0
 
-        best_score = -float("inf")
-        best_move = None
-        for move in [i for i in range(9) if self.cells[i] == BLANK]:
-            self.cells[move] = player.token
-            score = self.minimax(player, False)
-            self.cells[move] = BLANK
+        remaining_moves = self.get_remaining_moves()
+        opponent = self.get_other_player(player)
+        for move in remaining_moves:
+            self.place_token(move, player.token)
+            score = self.minimax(player, opponent, 0, False)
+            self.remove_token(move)
+
             if score > best_score:
-                best_score = score
                 best_move = move
-
-        player.move_cache[board_state] = best_move
-        player.save_cache(self.__class__.__name__, "minimax")
+                best_score = score
         return best_move
 
+    def minimax(self, player: Player, opponent: Player, depth: int, maxing: bool):
+        if self.check_win(player.token):
+            return 10 - depth
+        elif self.check_win(opponent.token):
+            return -10 + depth
 
+        remaining_moves = self.get_remaining_moves()
+        if len(remaining_moves) == 0:
+            return 0
+
+        if maxing:
+            best_score = float("-inf")
+            for move in remaining_moves:
+                self.place_token(move, player.token)
+                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing))
+                self.remove_token(move)
+        else:
+            best_score = float("inf")
+            for move in remaining_moves:
+                self.place_token(move, opponent.token)
+                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing))
+                self.remove_token(move)
+        return best_score
 
     @abstractmethod
     def qlearn_choose_move(self, token: str):
@@ -154,17 +179,14 @@ class Game(ABC):
     def start(cls):
         args = sys.argv
         player1, player2, games = get_from_args(args)
-        # if "-t" in args:
-        #     player1.
-
+        visualise = "-v" in args or player1 == "human" or player2 == "human"
 
         token1, token2 = cls.get_tokens()
-        player1 = Player(player1, token1, cls.__name__)
-        player2 = Player(player2, token2, cls.__name__)
+        player1 = Player(player1, token1)
+        player2 = Player(player2, token2)
 
         stats = {player1.token: 0, player2.token: 0, "Tie": 0}
         for i in trange(games):
-            visualise = False if games > 1 and player1 != "human" and player2 != "human" else True
             game = cls(player1, player2, visualise)
 
             winner = game.play(reverse_order=bool(i % 2))
