@@ -125,9 +125,9 @@ class Game(ABC):
             case "algo":
                 move = self.algorithm_choose_move(player.token)
             case "minimax":
-                move = self.minimax_choose_move(player)
+                move = self.minimax_choose_move(player.token)
             case "minimax_ab":
-                move = self.minimax_choose_move(player, float("-inf"), float("inf"))
+                move = self.minimax_choose_move(player.token, float("-inf"), float("inf"))
             case "qlearn":
                 move = self.qlearn_choose_move(player.token)
             case _:
@@ -147,14 +147,14 @@ class Game(ABC):
     def evaluate_early(self, player: str, opponent: str) -> int:
         pass
 
-    def minimax_choose_move(self, player, alpha=None, beta=None):
+    def minimax_choose_move(self, player: str, alpha=None, beta=None):
         best_score = float("-inf")
         best_move = 0
 
         remaining_moves = self.get_remaining_moves()
         opponent = self.get_other(player)
         for move in remaining_moves:
-            self.place_token(move, player.token)
+            self.place_token(move, player)
             score = self.minimax(player, opponent, 0, False, self.max_depth, alpha, beta)
             self.remove_token(move)
 
