@@ -1,6 +1,11 @@
+import sys
+
 from readchar import readkey
 import os
 
+from tqdm import trange
+
+from util import get_from_args
 
 EMPTY = " "
 
@@ -90,3 +95,23 @@ def check_subset(subset):
 if __name__ == "__main__":
     game = TicTacToe()
     game.play()
+
+def main():
+    player1, player2, games = get_from_args(sys.argv)
+
+    stats = {"🔴": 0, "🔵": 0, "Tie": 0}
+    for i in trange(games):
+        visualise = False if games > 1 and player1 != "human" and player2 != "human" else True
+        game = TicTacToe(player1, player2, visualise)
+
+        winner = game.play(reverse_order=bool(i%2))
+        stats[winner] += 1
+
+    clear_screen()
+    print(f"Player 1 ({player1}) wins: {stats['🔴']}")
+    print(f"Player 2 ({player2}) wins: {stats['🔵']}")
+    print(f"Ties: {stats['Tie']}")
+
+
+if __name__ == "__main__":
+    main()

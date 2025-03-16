@@ -2,15 +2,10 @@ import random
 import sys
 import time
 from tqdm import trange
-
-
 from readchar import readkey
-import os
+from util import get_from_args
 
 BLANK = "  "
-
-def clear_screen():
-    os.system('cls' if os.name=='nt' else 'clear')
 
 
 class Connect4:
@@ -199,25 +194,6 @@ class Connect4:
 
 def get_other(token):
     return "🔴" if token == "🔵" else "🔵"
-
-# get the value of a parameter or return the default value
-def param_or_default(args, flag, default):
-    if flag in args:
-        value = args[args.index(flag) + 1]
-        if value.isdigit():
-            return int(value)
-        return args[args.index(flag) + 1].lower()
-    return default
-
-def get_from_args(args):
-    try:
-        player1 = param_or_default(args, "-p1", "ai")
-        player2 = param_or_default(args, "-p2", "ai2")
-        games = param_or_default(args, "-g", 1)
-    except:
-        print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
-        exit()
-    return player1, player2, games
 
 
 def main():
