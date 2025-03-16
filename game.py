@@ -16,7 +16,7 @@ def clear_screen():
 class Game(ABC):
     def __init__(self, player1: Tuple[str, str], player2: Tuple[str, str], visualise: bool):
         self.visualise = visualise
-        self.players = [player1, player2]
+        self.players = (player1, player2)
 
     def print(self, message):
         if self.visualise:
@@ -43,9 +43,8 @@ class Game(ABC):
             readkey()
             clear_screen()
 
-        token = ""
         players = self.players if not reverse_order else list(reversed(self.players))
-        self.game_loop()
+        token = self.game_loop(players)
 
         if self.check_win():
             self.print(f"Player {token} wins!")
@@ -58,16 +57,22 @@ class Game(ABC):
         return winner
 
     @abstractmethod
-    def game_loop(self):
+    def game_loop(self, players):
         pass
 
     def choose_move(self, player, token):
-        move = None
         match player:
             case "human":
                 move = self.human_choose_move(token)
             case "ai":
-                move = self.ai_choose_column(token)
+                move = self.ai_choose_move(token)
+            case "minimax":
+                move = self.minimax_choose_move(token)
+            case "qlearning":
+                move = self.qlearning_choose_move(token)
+            case _:
+                print("Invalid player type.")
+                exit()
         return move
 
     @abstractmethod
@@ -75,7 +80,15 @@ class Game(ABC):
         pass
 
     @abstractmethod
-    def ai_choose_column(self, token):
+    def ai_choose_move(self, token):
+        pass
+
+    @abstractmethod
+    def minimax_choose_move(self, token):
+        pass
+
+    @abstractmethod
+    def qlearning_choose_move(self, token):
         pass
 
     def get_other(self, token):

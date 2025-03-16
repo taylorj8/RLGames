@@ -1,19 +1,22 @@
 import random
 import sys
 import time
+from typing import override
+
 from tqdm import trange
 from readchar import readkey
+
+from game import Game, clear_screen
 from util import get_from_args
 
 BLANK = "  "
 
 
-class Connect4:
+class Connect4(Game):
     def __init__(self, player1, player2, visualise):
+        super().__init__(player1, player2, visualise)
         self.cells = [[BLANK] * 7 for _ in range(6)]
         self.cols = [x for x in range(1, 8)]
-        self.players = [(player1, "🔴"), (player2, "🔵")]
-        self.visualise = visualise
 
     def column_full(self, index):
         return True if self.cells[5][index - 1] != BLANK else False
@@ -33,14 +36,7 @@ class Connect4:
                 self.cols[col - 1] = col
                 return
 
-    def print(self, message):
-        if self.visualise:
-            print(message)
-
-    def await_key(self):
-        if self.visualise:
-            readkey()
-
+    @override
     def get_board(self):
         c = self.cells
         n = self.cols
@@ -59,7 +55,7 @@ class Connect4:
 ┗━━━━┻━━━━┻━━━━┻━━━━┻━━━━┻━━━━┻━━━━┛
   {n[0]}    {n[1]}    {n[2]}    {n[3]}    {n[4]}    {n[5]}    {n[6]}"""
 
-
+    @override
     def check_win(self):
         c = self.cells
         for i in range(6):
@@ -99,49 +95,22 @@ class Connect4:
         return token_count
 
 
-    def play(self, reverse_order=False):
-        if self.visualise:
-            clear_screen()
-            print("Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column.")
-            print(self.get_board())
-            print("Press any key to start.")
-            readkey()
-            clear_screen()
-
+    @override
+    def game_loop(self, players):
         token = ""
-        players = self.players if not reverse_order else list(reversed(self.players))
         for i in [i for i in range(0, 42)]:
             player, token = players[i % 2]
-            col = self.choose_column(player, token)
+            col = self.choose_move(player, token)
 
             self.place_token(col, token)
             if self.check_win():
                 break
             if self.visualise:
                 clear_screen()
+        return token
 
-        if self.check_win():
-            self.print(f"Player {token} wins!")
-            winner = token
-        else:
-            self.print("The game ended in a tie.")
-            winner = "Tie"
-        self.print(self.get_board())
-        self.await_key()
-        return winner
-
-
-    def choose_column(self, player, token):
-        column = None
-        match player:
-            case "human":
-                column = self.human_choose_column(token)
-            case "ai":
-                column = self.ai_choose_column(token)
-        return column
-
-
-    def human_choose_column(self, token):
+    @override
+    def human_choose_move(self, token):
         while True:
             print(f"Player {token}, choose a column:\n{self.get_board()}")
             key = readkey()
@@ -161,14 +130,15 @@ class Connect4:
     # else find a move that results in the most runs of 4 with 3 tokens and 1 blank
     # else do the same with 2 tokens and 2 blanks
     # else choose randomly
-    def ai_choose_column(self, token):
+    @override
+    def ai_choose_move(self, token):
         if self.visualise:
             clear_screen()
             print(f"Player {token}\n{self.get_board()}")
             time.sleep(0.5)
 
         remaining_columns = [x for x in self.cols if type(x)==int]
-        for t in [token, get_other(token)]:
+        for t in [token, self.get_other(token)]:
             for col in remaining_columns:
                 self.place_token(col, t)
                 win = self.check_win()
@@ -191,13 +161,21 @@ class Connect4:
                 return random.choice(highest_wins[0])
         return random.choice(remaining_columns)
 
+    @override
+    def minimax_choose_move(self, token):
+        # TODO
+        pass
 
-def get_other(token):
-    return "🔴" if token == "🔵" else "🔵"
+    @override
+    def qlearning_choose_move(self, token):
+        # TODO
+        pass
 
 
 def main():
     player1, player2, games = get_from_args(sys.argv)
+    player1 = (player1, "🔴")
+    player2 = (player2, "🔵")
 
     stats = {"🔴": 0, "🔵": 0, "Tie": 0}
     for i in trange(games):
