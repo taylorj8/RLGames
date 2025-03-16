@@ -1,18 +1,21 @@
 import random
 import time
+from heapq import heappush, heappop
 from typing import override
 from readchar import readkey
 import os
 from game import Game
-
+from player import Player
 
 BLANK = " "
 
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
 
-def check_subset(subset):
-    return subset[0] != BLANK and all([x == subset[0] for x in subset])
+def check_subset(subset, token=None):
+    if token is None:
+        return subset[0] != BLANK and all([x == subset[0] for x in subset])
+    return all([x == token for x in subset])
 
 
 class TicTacToe(Game):
@@ -22,6 +25,11 @@ class TicTacToe(Game):
 
     def __init__(self, player1, player2, visualise):
         super().__init__(player1, player2, visualise)
+        self.cells = [BLANK] * 9
+        self.remaining_cells = [i for i in range(1, 10)]
+
+    @override
+    def reset(self):
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
 
@@ -50,8 +58,8 @@ class TicTacToe(Game):
     ╹   ╹"""
 
     @override
-    def check_win(self):
-        return any(check_subset([self.cells[i] for i in subset]) for subset in self.winning_subsets)
+    def check_win(self, token=None) -> bool:
+        return any(check_subset([self.cells[i] for i in subset], token) for subset in self.winning_subsets)
 
     def count_doubles(self, token):
         subsets = map(lambda x: [self.cells[i] for i in x], self.winning_subsets)
@@ -101,10 +109,49 @@ class TicTacToe(Game):
             return random.choice(highest_count[0])
         return random.choice(remaining_cells)
 
-    @override
-    def minimax_choose_move(self, token):
-        # TODO
-        pass
+    def minimax_choose_move(self, player: Player):
+        moves_queue = []
+        other_player = self.get_other_player(player)
+        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
+        for move in remaining_cells:
+            self.place_token(move, player.token)
+            score = self.minimax(player, other_player, False)
+            heappush(moves_queue, (score, move))
+            self.remove_token(move)
+
+        score, move = heappop(moves_queue)
+        return move
+
+    def minimax(self, player: Player, opponent: Player, is_maximizing: bool):
+        if self.check_win(player.token):  # Maximizing player wins
+            return 10
+        elif self.check_win(opponent.token):  # Minimizing player wins
+            return -10
+
+        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
+        if len(remaining_cells) == 0:
+            return 0
+
+        moves_queue = []
+        other_player = self.get_other_player(player)
+        for move in remaining_cells:
+            if is_maximizing:
+                self.place_token(move, player.token)
+            else :
+                self.place_token(move, opponent.token)
+            score = self.minimax(player, opponent, not is_maximizing)
+            # priority queue - score is negated to make it descending
+            if is_maximizing:
+                score = -score
+            heappush(moves_queue, (score, move))
+            self.remove_token(move)
+
+        score, move = heappop(moves_queue)
+        # negate score again to return it to original value
+        if is_maximizing:
+            score = -score
+        return score
+
 
     @override
     def qlearning_choose_move(self, token):
