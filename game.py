@@ -20,7 +20,7 @@ class Game(ABC):
     def __init__(self, player1: Tuple[str, str], player2: Tuple[str, str], visualise: bool):
         self.visualise = visualise
         self.players = (player1, player2)
-        self.guide = None
+        self.remaining_cells = None
 
     def print(self, message):
         if self.visualise:
@@ -42,11 +42,15 @@ class Game(ABC):
     def place_token(self, pos, token):
         pass
 
+    @abstractmethod
+    def remove_token(self, pos):
+        pass
+
     def play(self, reverse_order=False):
         if self.visualise:
             clear_screen()
             print(self.start_instructions)
-            print(self.get_board(self.guide))
+            print(self.get_board(self.remaining_cells))
             print("Press any key to start.")
             readkey()
             clear_screen()

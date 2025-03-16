@@ -30,6 +30,7 @@ class Connect4(Game):
                     self.cols[col - 1] = " "
                 return
 
+    @override
     def remove_token(self, col):
         for i in reversed(range(6)):
             if self.cells[i][col - 1] != BLANK:
@@ -81,17 +82,17 @@ class Connect4(Game):
         token_count = 0
         for i in range(6):
             for j in range(7):
-                run = []
+                runs = []
                 if j <= 3:
-                    run.append([c[i][j + k] for k in range(4)])
+                    runs.append([c[i][j + k] for k in range(4)])
                 if i <= 2:
-                    run.append([c[i + k][j] for k in range(4)])
+                    runs.append([c[i + k][j] for k in range(4)])
                 if i <= 2 and j <= 3:
-                    run.append([c[i + k][j + k] for k in range(4)])
+                    runs.append([c[i + k][j + k] for k in range(4)])
                 if i <= 2 and j >= 3:
-                    run.append([c[i + k][j - k] for k in range(4)])
+                    runs.append([c[i + k][j - k] for k in range(4)])
 
-                token_count += sum(1 for subset in run if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
+                token_count += sum(1 for subset in runs if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
         return token_count
 
     @override
@@ -108,7 +109,6 @@ class Connect4(Game):
             print(f"Select a valid column.\n{self.get_board()}\nPress any key to continue.")
             readkey()
             clear_screen()
-
 
     # Basic algorithm for playing connect 4 - if a move will result in a win, take it
     # else if a move will result in a win for the opponent, block it

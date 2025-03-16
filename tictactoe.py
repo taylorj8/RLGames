@@ -1,31 +1,42 @@
+import random
+import time
 from typing import override
 from readchar import readkey
 import os
 from game import Game
 
 
-EMPTY = " "
+BLANK = " "
 
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
+
+def check_subset(subset):
+    return subset[0] != BLANK and all([x == subset[0] for x in subset])
 
 
 class TicTacToe(Game):
     max_moves = 9
     start_instructions = "Welcome to TicTacToe! The game is played using the numpad. The numbers correspond to squares as follows:"
+    winning_subsets = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
 
     def __init__(self, player1, player2, visualise):
         super().__init__(player1, player2, visualise)
-        self.cells = [EMPTY] * 9
-        self.guide = [str(i) for i in range(1, 10)]
+        self.cells = [BLANK] * 9
+        self.remaining_cells = [i for i in range(1, 10)]
 
     def cell_taken(self, index):
-        return True if self.cells[index - 1] != EMPTY else False
+        return True if self.cells[index - 1] != BLANK else False
 
     @override
     def place_token(self, index, player):
         self.cells[index - 1] = player
-        self.guide[index - 1] = "■"
+        self.remaining_cells[index - 1] = "■"
+
+    @override
+    def remove_token(self, index):
+        self.cells[index - 1] = BLANK
+        self.remaining_cells[index - 1] = index
 
     @override
     def get_board(self, guide=None):
@@ -40,13 +51,11 @@ class TicTacToe(Game):
 
     @override
     def check_win(self):
-        def check_subset(subset):
-            return subset[0] != EMPTY and all([x == subset[0] for x in subset])
+        return any(check_subset([self.cells[i] for i in subset]) for subset in self.winning_subsets)
 
-        return check_subset(self.cells[:3]) or check_subset(self.cells[3:6]) or check_subset(self.cells[6:9]) or \
-               check_subset([self.cells[0], self.cells[3], self.cells[6]]) or check_subset([self.cells[1], self.cells[4], self.cells[7]]) or \
-               check_subset([self.cells[2], self.cells[5], self.cells[8]]) or check_subset([self.cells[0], self.cells[4], self.cells[8]]) or \
-               check_subset([self.cells[2], self.cells[4], self.cells[6]])
+    def count_doubles(self, token):
+        subsets = map(lambda x: [self.cells[i] for i in x], self.winning_subsets)
+        return sum(1 for subset in subsets if subset.count(token) == 2 and subset.count(BLANK) == 1)
 
     @override
     def human_choose_move(self, token):
@@ -59,14 +68,38 @@ class TicTacToe(Game):
                     return cell
 
             clear_screen()
-            print(f"Enter one of the following keys:\n{self.get_board(self.guide)}\nPlease choose an empty cell.")
+            print(f"Enter one of the following keys:\n{self.get_board(self.remaining_cells)}\nPlease choose an empty cell.")
             readkey()
             clear_screen()
 
     @override
     def algorithm_choose_move(self, token):
-        # TODO
-        pass
+        if self.visualise:
+            clear_screen()
+            print(f"Player {token}\n{self.get_board()}")
+            time.sleep(0.5)
+
+        remaining_cells = [x for x in self.remaining_cells if type(x) == int]
+        for t in [token, self.get_other(token)]:
+            for cell in remaining_cells:
+                self.place_token(cell, t)
+                win = self.check_win()
+                self.remove_token(cell)
+                if win:
+                    return cell
+
+        highest_count = ([], 0)
+        for cell in remaining_cells:
+            self.place_token(cell, token)
+            count = self.count_doubles(token)
+            self.remove_token(cell)
+            if count > highest_count[1]:
+                highest_count = ([cell], count)
+            elif count == highest_count[1]:
+                highest_count[0].append(cell)
+        if highest_count[1] > 0:
+            return random.choice(highest_count[0])
+        return random.choice(remaining_cells)
 
     @override
     def minimax_choose_move(self, token):
