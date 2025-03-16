@@ -172,24 +172,5 @@ class Connect4(Game):
         pass
 
 
-def main():
-    player1, player2, games = get_from_args(sys.argv)
-    player1 = (player1, "🔴")
-    player2 = (player2, "🔵")
-
-    stats = {"🔴": 0, "🔵": 0, "Tie": 0}
-    for i in trange(games):
-        visualise = False if games > 1 and player1 != "human" and player2 != "human" else True
-        game = Connect4(player1, player2, visualise)
-
-        winner = game.play(reverse_order=bool(i%2))
-        stats[winner] += 1
-
-    clear_screen()
-    print(f"Player 1 ({player1}) wins: {stats['🔴']}")
-    print(f"Player 2 ({player2}) wins: {stats['🔵']}")
-    print(f"Ties: {stats['Tie']}")
-
-
 if __name__ == "__main__":
-    main()
+    Connect4.start("🔴", "🔵")

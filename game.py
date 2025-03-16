@@ -93,3 +93,22 @@ class Game(ABC):
 
     def get_other(self, token):
         return self.players[1][1] if token == self.players[0][1] else self.players[0][1]
+
+    @classmethod
+    def start(cls, token1: str, token2: str):
+        player1, player2, games = get_from_args(sys.argv)
+        player1 = (player1, token1)
+        player2 = (player2, token2)
+
+        stats = {token1: 0, token2: 0, "Tie": 0}
+        for i in trange(games):
+            visualise = False if games > 1 and player1 != "human" and player2 != "human" else True
+            game = cls(player1, player2, visualise)
+
+            winner = game.play(reverse_order=bool(i % 2))
+            stats[winner] += 1
+
+        clear_screen()
+        print(f"Player {player1[1]} ({player1[0]}) wins: {stats[token1]}")
+        print(f"Player {player2[1]} ({player2[0]}) wins: {stats[token2]}")
+        print(f"Ties: {stats['Tie']}")
