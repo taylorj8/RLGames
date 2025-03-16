@@ -1,18 +1,18 @@
 import random
-import sys
 import time
 from typing import override
 
-from tqdm import trange
 from readchar import readkey
 
 from game import Game, clear_screen
-from util import get_from_args
 
 BLANK = "  "
 
 
 class Connect4(Game):
+    max_moves = 42
+    start_instructions = "Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column."
+
     def __init__(self, player1, player2, visualise):
         super().__init__(player1, player2, visualise)
         self.cells = [[BLANK] * 7 for _ in range(6)]
@@ -21,6 +21,7 @@ class Connect4(Game):
     def column_full(self, index):
         return True if self.cells[5][index - 1] != BLANK else False
 
+    @override
     def place_token(self, col, token):
         for i in range(6):
             if self.cells[i][col - 1] == BLANK:
@@ -37,7 +38,7 @@ class Connect4(Game):
                 return
 
     @override
-    def get_board(self):
+    def get_board(self, guide=None):
         c = self.cells
         n = self.cols
         return f"""╻    ╻    ╻    ╻    ╻    ╻    ╻    ╻
@@ -75,7 +76,6 @@ class Connect4(Game):
                     return True
         return False
 
-
     def count_tokens(self, token, threshold):
         c = self.cells
         token_count = 0
@@ -93,21 +93,6 @@ class Connect4(Game):
 
                 token_count += sum(1 for subset in run if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
         return token_count
-
-
-    @override
-    def game_loop(self, players):
-        token = ""
-        for i in [i for i in range(0, 42)]:
-            player, token = players[i % 2]
-            col = self.choose_move(player, token)
-
-            self.place_token(col, token)
-            if self.check_win():
-                break
-            if self.visualise:
-                clear_screen()
-        return token
 
     @override
     def human_choose_move(self, token):
@@ -131,7 +116,7 @@ class Connect4(Game):
     # else do the same with 2 tokens and 2 blanks
     # else choose randomly
     @override
-    def ai_choose_move(self, token):
+    def algorithm_choose_move(self, token):
         if self.visualise:
             clear_screen()
             print(f"Player {token}\n{self.get_board()}")
@@ -171,6 +156,11 @@ class Connect4(Game):
         # TODO
         pass
 
+    @staticmethod
+    @override
+    def get_tokens():
+        return "🔴", "🔵"
+
 
 if __name__ == "__main__":
-    Connect4.start("🔴", "🔵")
+    Connect4.start()

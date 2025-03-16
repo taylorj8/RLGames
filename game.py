@@ -14,9 +14,13 @@ def clear_screen():
 
 
 class Game(ABC):
+    max_moves = 0
+    start_instructions = ""
+
     def __init__(self, player1: Tuple[str, str], player2: Tuple[str, str], visualise: bool):
         self.visualise = visualise
         self.players = (player1, player2)
+        self.guide = None
 
     def print(self, message):
         if self.visualise:
@@ -27,18 +31,22 @@ class Game(ABC):
             readkey()
 
     @abstractmethod
-    def get_board(self):
+    def get_board(self, override=None):
         pass
 
     @abstractmethod
     def check_win(self):
         pass
 
+    @abstractmethod
+    def place_token(self, pos, token):
+        pass
+
     def play(self, reverse_order=False):
         if self.visualise:
             clear_screen()
-            print("Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column.")
-            print(self.get_board())
+            print(self.start_instructions)
+            print(self.get_board(self.guide))
             print("Press any key to start.")
             readkey()
             clear_screen()
@@ -56,16 +64,25 @@ class Game(ABC):
         self.await_key()
         return winner
 
-    @abstractmethod
     def game_loop(self, players):
-        pass
+        token = ""
+        for i in range(self.max_moves):
+            player, token = players[i % 2]
+            col = self.choose_move(player, token)
+
+            self.place_token(col, token)
+            if self.check_win():
+                break
+            if self.visualise:
+                clear_screen()
+        return token
 
     def choose_move(self, player, token):
         match player:
             case "human":
                 move = self.human_choose_move(token)
-            case "ai":
-                move = self.ai_choose_move(token)
+            case "algorithm":
+                move = self.algorithm_choose_move(token)
             case "minimax":
                 move = self.minimax_choose_move(token)
             case "qlearning":
@@ -80,7 +97,7 @@ class Game(ABC):
         pass
 
     @abstractmethod
-    def ai_choose_move(self, token):
+    def algorithm_choose_move(self, token):
         pass
 
     @abstractmethod
@@ -91,12 +108,18 @@ class Game(ABC):
     def qlearning_choose_move(self, token):
         pass
 
+    @staticmethod
+    @abstractmethod
+    def get_tokens():
+        pass
+
     def get_other(self, token):
         return self.players[1][1] if token == self.players[0][1] else self.players[0][1]
 
     @classmethod
-    def start(cls, token1: str, token2: str):
+    def start(cls):
         player1, player2, games = get_from_args(sys.argv)
+        token1, token2 = cls.get_tokens()
         player1 = (player1, token1)
         player2 = (player2, token2)
 
