@@ -65,28 +65,23 @@ class Connect4:
   {n[0]}    {n[1]}    {n[2]}    {n[3]}    {n[4]}    {n[5]}    {n[6]}"""
 
 
-    def check_win(self, length=4, count=False):
+    def check_win(self):
         c = self.cells
-        win_count = 0
         for i in range(6):
             for j in range(7):
-                win_conditions = []
-                if j <= 7 - length:
-                    win_conditions.append([c[i][j + k] for k in range(length)])
-                if i <= 6 - length:
-                    win_conditions.append([c[i + k][j] for k in range(length)])
-                if i <= 6 - length and j <= 7 - length:
-                    win_conditions.append([c[i + k][j + k] for k in range(length)])
-                if i <= 6 - length and j >= length - 1:
-                    win_conditions.append([c[i + k][j - k] for k in range(length)])
+                potential_wins = []
+                if j <= 3:
+                    potential_wins.append([c[i][j + k] for k in range(4)])
+                if i <= 2:
+                    potential_wins.append([c[i + k][j] for k in range(4)])
+                if i <= 2 and j <= 3:
+                    potential_wins.append([c[i + k][j + k] for k in range(4)])
+                if i <= 2 and j >= 3:
+                    potential_wins.append([c[i + k][j - k] for k in range(4)])
 
-                outcomes = [subset[0] != BLANK and all([x == subset[0] for x in subset]) for subset in win_conditions]
-                if count:
-                    win_count += sum(outcomes)
-                elif any(outcomes):
+                outcomes = [subset[0] != BLANK and all([x == subset[0] for x in subset]) for subset in potential_wins]
+                if any(outcomes):
                     return True
-        if count:
-            return win_count
         return False
 
 
@@ -95,17 +90,17 @@ class Connect4:
         token_count = 0
         for i in range(6):
             for j in range(7):
-                win_conditions = []
+                run = []
                 if j <= 3:
-                    win_conditions.append([c[i][j + k] for k in range(4)])
+                    run.append([c[i][j + k] for k in range(4)])
                 if i <= 2:
-                    win_conditions.append([c[i + k][j] for k in range(4)])
+                    run.append([c[i + k][j] for k in range(4)])
                 if i <= 2 and j <= 3:
-                    win_conditions.append([c[i + k][j + k] for k in range(4)])
-                if i <= 2 and j >= 2:
-                    win_conditions.append([c[i + k][j - k] for k in range(4)])
+                    run.append([c[i + k][j + k] for k in range(4)])
+                if i <= 2 and j >= 3:
+                    run.append([c[i + k][j - k] for k in range(4)])
 
-                token_count += sum(1 for subset in win_conditions if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
+                token_count += sum(1 for subset in run if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
         return token_count
 
 
@@ -148,8 +143,6 @@ class Connect4:
                 column = self.human_choose_column(token)
             case "ai":
                 column = self.ai_choose_column(token)
-            case "ai2":
-                column = self.ai_choose_column2(token)
         return column
 
 
@@ -169,41 +162,11 @@ class Connect4:
 
 
     # Basic algorithm for playing connect 4 - if a move will result in a win, take it
-    # else if a column will result in a win for the opponent, block it
-    # else find a move that results in the most runs of 3 - if a tie, choose randomly
-    # else do the same with 2
+    # else if a move will result in a win for the opponent, block it
+    # else find a move that results in the most runs of 4 with 3 tokens and 1 blank
+    # else do the same with 2 tokens and 2 blanks
     # else choose randomly
     def ai_choose_column(self, token):
-        if self.visualise:
-            clear_screen()
-            print(f"Player {token}\n{self.get_board()}")
-            time.sleep(0.5)
-
-        remaining_columns = [x for x in self.cols if type(x)==int]
-        for t in [token, get_other(token)]:
-            for col in remaining_columns:
-                self.place_token(col, t)
-                win = self.check_win()
-                self.remove_token(col)
-                if win:
-                    return col
-
-        for length in [3, 2]:
-            baseline = self.check_win(length, count=True)
-            highest_wins = ([], baseline)
-            for col in remaining_columns:
-                self.place_token(col, token)
-                wins = self.check_win(length, count=True)
-                self.remove_token(col)
-                if wins > highest_wins[1]:
-                    highest_wins = ([col], wins)
-                elif wins == highest_wins[1]:
-                    highest_wins[0].append(col)
-            if highest_wins[1] > baseline:
-                return random.choice(highest_wins[0])
-        return random.choice(remaining_columns)
-
-    def ai_choose_column2(self, token):
         if self.visualise:
             clear_screen()
             print(f"Player {token}\n{self.get_board()}")
