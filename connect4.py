@@ -12,8 +12,8 @@ class Connect4(Game):
     max_moves = 42
     start_instructions = "Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column."
 
-    def __init__(self, player1, player2, visualise, max_depth=42):
-        super().__init__(player1, player2, visualise, max_depth)
+    def __init__(self, player1, player2, visualise, max_depth=42, q_table=None):
+        super().__init__(player1, player2, visualise, max_depth, q_table)
         self.cells = [[BLANK] * 7 for _ in range(6)]
         self.cols = [x for x in range(1, 8)]
 

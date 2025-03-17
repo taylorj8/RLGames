@@ -1,5 +1,5 @@
+import json
 import os
-import pickle
 import sys
 from dataclasses import dataclass
 
@@ -11,6 +11,8 @@ def clear_screen():
 def param_or_default(args, flag, default):
     if flag in args:
         value = args[args.index(flag) + 1]
+        if value.startswith("-"):
+            return default
         if value.isdigit():
             return int(value)
         return args[args.index(flag) + 1].lower()
@@ -20,7 +22,7 @@ def param_or_default(args, flag, default):
 def get_from_args(args):
     try:
         player1 = param_or_default(args, "-p1", "minimax")
-        player2 = param_or_default(args, "-p2", "algorithm")
+        player2 = param_or_default(args, "-p2", "algo")
         games = param_or_default(args, "-g", 1)
         max_depth = param_or_default(args, "-d", sys.maxsize)
     except:
@@ -30,12 +32,13 @@ def get_from_args(args):
 
 
 def load_q_table(game: str) -> dict:
-    file_name = f"q_tables/{game}.pkl"
+    file_name = f"q_tables/{game}.json"
     if not os.path.exists(file_name):
         print(f"Q-learning has not been trained for {game}.")
         exit()
-    with open(file_name, "rb") as f:
-        return pickle.load(f)
+    with open(file_name, "r") as f:
+        table = json.load(f)
+        return {k: {int(k2): v2 for k2, v2 in v.items()} for k, v in table.items()}
 
 
 @dataclass

@@ -18,15 +18,13 @@ class Game(ABC):
     max_moves = 0
     start_instructions = ""
 
-    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42):
+    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_table=None):
         self.visualise = visualise
         self.players: Tuple[Player, Player] = (player1, player2)
         self.cells = []
         self.remaining_cells = None
         self.max_depth = max_depth
-
-        if player1.type == "qlearn" or player2.type == "qlearn":
-            self.q_table = load_q_table(self.__class__.__name__)
+        self.q_table = q_table
 
     def print(self, message: str):
         if self.visualise:
@@ -150,9 +148,9 @@ class Game(ABC):
 
     def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth, alpha, beta):
         if self.check_win(player):
-            return 10 - depth
+            return max_depth - depth + 1
         elif self.check_win(opponent):
-            return -10 + depth
+            return -max_depth + depth - 1
 
         remaining_moves = self.get_remaining_moves()
         if len(remaining_moves) == 0:
@@ -211,23 +209,28 @@ class Game(ABC):
         args = sys.argv
         token1, token2 = cls.get_tokens()
         if "-train" in args:
-            episodes = param_or_default(args, "-e", 100)
+        # if True:
+            episodes = param_or_default(args, "-train", 10000)
             game = cls(Player("train", token1), Player("train", token2), False)
-            QLearner(game, episodes, 0.001, 0.9).train()
+            QLearner(game, episodes).train()
             print("Training complete.")
-            exit()
 
         player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
+
+        q_table = None
+        if player1 == "qlearn" or player2 == "qlearn":
+            q_table = load_q_table(cls.__name__)
 
         player1 = Player(player1, token1)
         player2 = Player(player2, token2)
 
         stats = {player1.token: 0, player2.token: 0, "Tie": 0}
         for i in trange(games):
-            game = cls(player1, player2, visualise, max_depth)
+            game = cls(player1, player2, visualise, max_depth, q_table)
 
-            winner = game.play(reverse_order=bool(i % 2))
+            # winner = game.play(reverse_order=bool(i % 2))
+            winner = game.play()
             stats[winner] += 1
 
         clear_screen()
