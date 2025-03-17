@@ -18,8 +18,8 @@ class TicTacToe(Game):
     start_instructions = "Welcome to TicTacToe! The game is played using the numpad. The numbers correspond to squares as follows:"
     winning_subsets = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
 
-    def __init__(self, player1, player2, max_depth, visualise):
-        super().__init__(player1, player2, max_depth, visualise)
+    def __init__(self, player1, player2, visualise, max_depth=9):
+        super().__init__(player1, player2, visualise, max_depth)
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
 
@@ -28,7 +28,7 @@ class TicTacToe(Game):
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
 
-    def get_remaining_moves(self):
+    def get_remaining_moves(self) -> list[int]:
         return [x for x in self.remaining_cells if type(x) == int]
 
     def cell_taken(self, index):
@@ -54,6 +54,10 @@ class TicTacToe(Game):
 ╺━━━╋━━━╋━━━╸
   {c[0]} ┃ {c[1]} ┃ {c[2]}
     ╹   ╹"""
+
+    @override
+    def get_state(self):
+        return "".join(self.cells)
 
     @override
     def check_win(self, token=None) -> bool:
@@ -113,11 +117,6 @@ class TicTacToe(Game):
         if highest_count[1] > 0:
             return random.choice(highest_count[0])
         return random.choice(remaining_cells)
-
-    @override
-    def qlearn_choose_move(self, token):
-        # TODO
-        pass
 
     @staticmethod
     @override

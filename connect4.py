@@ -12,8 +12,8 @@ class Connect4(Game):
     max_moves = 42
     start_instructions = "Welcome to Connect 4! The game is played using the keyboard with 1-7 corresponding to each column."
 
-    def __init__(self, player1, player2, max_depth, visualise):
-        super().__init__(player1, player2, max_depth, visualise)
+    def __init__(self, player1, player2, visualise, max_depth=42):
+        super().__init__(player1, player2, visualise, max_depth)
         self.cells = [[BLANK] * 7 for _ in range(6)]
         self.cols = [x for x in range(1, 8)]
 
@@ -43,11 +43,11 @@ class Connect4(Game):
                 return
 
     @override
-    def get_remaining_moves(self):
+    def get_remaining_moves(self) -> list[int]:
         return [x for x in self.cols if type(x) == int]
 
     @override
-    def get_board(self, guide=None):
+    def get_board(self, guide=None) -> str:
         c = self.cells
         n = self.cols
         return f"""╻    ╻    ╻    ╻    ╻    ╻    ╻    ╻
@@ -66,7 +66,11 @@ class Connect4(Game):
   {n[0]}    {n[1]}    {n[2]}    {n[3]}    {n[4]}    {n[5]}    {n[6]}"""
 
     @override
-    def check_win(self, token=None):
+    def get_state(self) -> str:
+        return "".join([x for row in self.cells for x in row])
+
+    @override
+    def check_win(self, token=None) -> bool:
         for i in range(6):
             for j in range(7):
                 potential_wins = []
@@ -113,7 +117,6 @@ class Connect4(Game):
         bad_runs_of_two = self.count_runs(opponent, 2)
 
         return good_runs_of_three * 2 + good_runs_of_two - bad_runs_of_three * 2 - bad_runs_of_two
-
 
     @override
     def human_choose_move(self, token):
@@ -165,11 +168,6 @@ class Connect4(Game):
             if highest_wins[1] > baseline:
                 return random.choice(highest_wins[0])
         return random.choice(remaining_columns)
-
-    @override
-    def qlearn_choose_move(self, token):
-        # TODO
-        pass
 
     @staticmethod
     @override

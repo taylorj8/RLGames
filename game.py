@@ -1,56 +1,32 @@
-import json
 import os
+import pickle
+import random
 import sys
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Tuple
 
 from readchar import readkey
 from tqdm import trange
 
+from qlearner import QLearner
+from util import *
+
 BLANK = " "
 
-
-def clear_screen():
-    os.system('cls' if os.name=='nt' else 'clear')
-
-# get the value of a parameter or return the default value
-def param_or_default(args, flag, default):
-    if flag in args:
-        value = args[args.index(flag) + 1]
-        if value.isdigit():
-            return int(value)
-        return args[args.index(flag) + 1].lower()
-    return default
-
-# get the values of the parameters from the command line arguments
-def get_from_args(args):
-    try:
-        player1 = param_or_default(args, "-p1", "minimax")
-        player2 = param_or_default(args, "-p2", "algorithm")
-        games = param_or_default(args, "-g", 1)
-        max_depth = param_or_default(args, "-d", sys.maxsize)
-    except:
-        print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
-        exit()
-    return player1, player2, games, max_depth
-
-
-@dataclass
-class Player:
-    type: str
-    token: str
 
 class Game(ABC):
     max_moves = 0
     start_instructions = ""
 
-    def __init__(self, player1: Player, player2: Player, max_depth: int, visualise: bool):
+    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42):
         self.visualise = visualise
-        self.players = (player1, player2)
+        self.players: Tuple[Player, Player] = (player1, player2)
         self.cells = []
-        self.max_depth = max_depth
         self.remaining_cells = None
+        self.max_depth = max_depth
+
+        if player1.type == "qlearn" or player2.type == "qlearn":
+            self.q_table = load_q_table(self.__class__.__name__)
 
     def print(self, message: str):
         if self.visualise:
@@ -83,6 +59,13 @@ class Game(ABC):
     @abstractmethod
     def get_remaining_moves(self):
         pass
+
+    @abstractmethod
+    def get_state(self):
+        pass
+
+    def game_over(self):
+        return self.check_win() or not self.get_remaining_moves()
 
     def play(self, reverse_order=False) -> str:
         if self.visualise:
@@ -122,6 +105,8 @@ class Game(ABC):
         match player.type:
             case "human":
                 move = self.human_choose_move(player.token)
+            case "random":
+                move = random.choice(self.get_remaining_moves())
             case "algo":
                 move = self.algorithm_choose_move(player.token)
             case "minimax":
@@ -200,9 +185,15 @@ class Game(ABC):
                         break
         return best_score
 
-    @abstractmethod
-    def qlearn_choose_move(self, token: str):
-        pass
+    def qlearn_choose_move(self, token):
+        state = self.get_state()
+        if state in self.q_table:
+            moves = self.get_remaining_moves()
+            max_q = max(self.q_table[state][m] for m in moves)
+            best_moves = [m for m in moves if self.q_table[state][m] == max_q]
+            return random.choice(best_moves)
+        else:
+            return random.choice(self.get_remaining_moves())
 
     @staticmethod
     @abstractmethod
@@ -218,16 +209,23 @@ class Game(ABC):
     @classmethod
     def start(cls):
         args = sys.argv
+        token1, token2 = cls.get_tokens()
+        if "-train" in args:
+            episodes = param_or_default(args, "-e", 100)
+            game = cls(Player("train", token1), Player("train", token2), False)
+            QLearner(game, episodes, 0.001, 0.9).train()
+            print("Training complete.")
+            exit()
+
         player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
 
-        token1, token2 = cls.get_tokens()
         player1 = Player(player1, token1)
         player2 = Player(player2, token2)
 
         stats = {player1.token: 0, player2.token: 0, "Tie": 0}
         for i in trange(games):
-            game = cls(player1, player2, max_depth, visualise)
+            game = cls(player1, player2, visualise, max_depth)
 
             winner = game.play(reverse_order=bool(i % 2))
             stats[winner] += 1
