@@ -185,10 +185,11 @@ class Game(ABC):
 
     def qlearn_choose_move(self, token):
         state = self.get_state()
+        min_or_max = max if token == self.players[0].token else min
         if state in self.q_table:
             moves = self.get_remaining_moves()
-            max_q = max(self.q_table[state][m] for m in moves)
-            best_moves = [m for m in moves if self.q_table[state][m] == max_q]
+            best_q = min_or_max(self.q_table[state][m] for m in moves)
+            best_moves = [m for m in moves if self.q_table[state][m] == best_q]
             return random.choice(best_moves)
         else:
             return random.choice(self.get_remaining_moves())
@@ -209,11 +210,11 @@ class Game(ABC):
         args = sys.argv
         token1, token2 = cls.get_tokens()
         if "-train" in args:
-        # if True:
             episodes = param_or_default(args, "-train", 10000)
-            game = cls(Player("train", token1), Player("train", token2), False)
+            game = cls(Player("qlearn", token1), Player("algo", token2), False)
             QLearner(game, episodes).train()
             print("Training complete.")
+            exit()
 
         player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
