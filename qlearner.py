@@ -49,7 +49,8 @@ class QLearner:
         self.q_table[state][move] += self.alpha * diff
         return abs(diff)
 
-    def blocked_win(self, move: int, other_token: str) -> bool:
+    def blocked_win(self, move: int, token: str) -> bool:
+        other_token = self.game.get_other(token)
         self.game.place_token(move, other_token)
         blocked = self.game.check_win(other_token)
         self.game.remove_token(move)
@@ -58,7 +59,7 @@ class QLearner:
     def train(self):
         tokens = self.game.get_tokens()
         for i in range(1, sys.maxsize):
-            for _ in trange(self.episodes):
+            for e in trange(self.episodes):
                 token = tokens[0]
                 state = self.game.get_state()
                 while not self.game.game_over():
@@ -66,21 +67,21 @@ class QLearner:
                         move = self.choose_move(state, max)
                     else:
                         move = self.choose_move(state, min)
-                    blocked = self.blocked_win(move, self.game.get_other(token))
+                    blocked = self.blocked_win(move, token)
                     self.game.place_token(move, token)
 
                     # Reward is assigned from the active player's perspective.
-                    if self.game.check_win(token[0]):
+                    if self.game.check_win(tokens[0]):
                         reward = 50.0  # win for active player
-                    elif self.game.check_win(token[1]):
+                    elif self.game.check_win(tokens[1]):
                         reward = -50.0  # loss for active player
                     elif self.game.get_remaining_moves() == 0:
                         reward = 0.0  # draw
                     else:
                         # reward the player for creating doubles
-                        reward = self.game.count_doubles(token[0]) - self.game.count_doubles(token[1])
+                        reward = self.game.count_doubles(tokens[0]) - self.game.count_doubles(tokens[1])
                         if blocked:
-                            if token == token[0]:
+                            if token == tokens[0]:
                                 reward += 5.0
                             else:
                                 reward -= 5.0
@@ -91,12 +92,12 @@ class QLearner:
                     self.update_q_table(state, next_state, move, reward)
 
                     state = next_state
-                self.game.reset()
+                self.game.reset(initial_token=e % 2)
 
             stats = [0, 0, 0]
             self.game.q_table = self.q_table
-            for _ in range(100):
-                winner = self.game.play()
+            for j in range(100):
+                winner = self.game.play(reverse_order=bool(j % 2))
                 self.game.reset()
                 if winner == tokens[0]:
                     stats[0] += 1

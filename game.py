@@ -32,11 +32,11 @@ class Game(ABC):
         if self.visualise:
             readkey()
 
-    def swap_token(self):
+    def swap_tokens(self):
         self.current_token = self.get_other(self.current_token)
 
     @abstractmethod
-    def reset(self):
+    def reset(self, reverse_order=False):
         pass
 
     @abstractmethod
@@ -97,7 +97,7 @@ class Game(ABC):
             self.place_token(pos)
             if self.check_win():
                 break
-            self.swap_token()
+            self.swap_tokens()
         return self.players.index(player)
 
     def choose_move(self, player: Player) -> int:
