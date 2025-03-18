@@ -4,8 +4,18 @@ import sys
 from dataclasses import dataclass
 
 
+@dataclass
+class Player:
+    type: str
+
+
+def swap_order(player1: Player, player2: Player):
+    player1.order, player2.order = player2.order, player1.order
+
+
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
+
 
 # get the value of a parameter or return the default value
 def param_or_default(args, flag, default):
@@ -17,6 +27,7 @@ def param_or_default(args, flag, default):
             return int(value)
         return args[args.index(flag) + 1].lower()
     return default
+
 
 # get the values of the parameters from the command line arguments
 def get_from_args(args):
@@ -39,9 +50,3 @@ def load_q_table(game: str) -> dict:
     with open(file_name, "r") as f:
         table = json.load(f)
         return {k: {int(k2): v2 for k2, v2 in v.items()} for k, v in table.items()}
-
-
-@dataclass
-class Player:
-    type: str
-    token: str

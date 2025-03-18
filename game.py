@@ -1,7 +1,4 @@
-import os
-import pickle
 import random
-import sys
 from abc import ABC, abstractmethod
 from typing import Tuple
 
@@ -25,6 +22,7 @@ class Game(ABC):
         self.remaining_cells = None
         self.max_depth = max_depth
         self.q_table = q_table
+        self.current_token = self.get_tokens()[0]
 
     def print(self, message: str):
         if self.visualise:
@@ -33,6 +31,9 @@ class Game(ABC):
     def await_key(self):
         if self.visualise:
             readkey()
+
+    def swap_token(self):
+        self.current_token = self.get_other(self.current_token)
 
     @abstractmethod
     def reset(self):
@@ -47,7 +48,7 @@ class Game(ABC):
         pass
 
     @abstractmethod
-    def place_token(self, pos, token: str):
+    def place_token(self, pos: int, token: str = None):
         pass
 
     @abstractmethod
@@ -65,7 +66,7 @@ class Game(ABC):
     def game_over(self):
         return self.check_win() or not self.get_remaining_moves()
 
-    def play(self, reverse_order=False) -> str:
+    def play(self, reverse_order=False) -> int:
         if self.visualise:
             clear_screen()
             print(self.start_instructions)
@@ -74,63 +75,64 @@ class Game(ABC):
             # readkey()
             clear_screen()
 
-        players = self.players if not reverse_order else list(reversed(self.players))
-        token = self.game_loop(players)
+        winner_index = self.game_loop(reverse_order)
 
         if self.check_win():
-            self.print(f"Player {token} wins!")
-            winner = token
+            self.print(f"Player {winner_index+1} wins!")
         else:
             self.print("The game ended in a tie.")
-            winner = "Tie"
+            winner_index = 2
         self.print(self.get_board())
         self.await_key()
-        return winner
+        return winner_index
 
-    def game_loop(self, players: Tuple[Player, Player]) -> str:
+    def game_loop(self, reverse_order) -> int:
+        offset = 1 if reverse_order else 0
         for i in range(self.max_moves):
-            player = players[i % 2]
-            col = self.choose_move(player)
+            player = self.players[(i + offset) % 2]
+            pos = self.choose_move(player)
             if self.visualise:
                 clear_screen()
 
-            self.place_token(col, player.token)
+            self.place_token(pos)
             if self.check_win():
                 break
-        return player.token
+            self.swap_token()
+        return self.players.index(player)
 
     def choose_move(self, player: Player) -> int:
         match player.type:
             case "human":
-                move = self.human_choose_move(player.token)
+                move = self.human_choose_move()
             case "random":
                 move = random.choice(self.get_remaining_moves())
             case "algo":
-                move = self.algorithm_choose_move(player.token)
+                move = self.algorithm_choose_move()
             case "minimax":
-                move = self.minimax_choose_move(player.token)
+                move = self.minimax_choose_move()
             case "minimax_ab":
-                move = self.minimax_choose_move(player.token, float("-inf"), float("inf"))
+                move = self.minimax_choose_move(float("-inf"), float("inf"))
             case "qlearn":
-                move = self.qlearn_choose_move(player.token)
+                move = self.qlearn_choose_move()
             case _:
                 print("Invalid player type.")
                 exit()
         return move
 
     @abstractmethod
-    def human_choose_move(self, token: str):
+    def human_choose_move(self) -> int:
         pass
 
     @abstractmethod
-    def algorithm_choose_move(self, token: str):
+    def algorithm_choose_move(self) -> int:
         pass
 
     @abstractmethod
     def evaluate_early(self, player: str, opponent: str) -> int:
         pass
 
-    def minimax_choose_move(self, player: str, alpha=None, beta=None):
+    def minimax_choose_move(self, alpha=None, beta=None):
+        player = self.current_token
         best_score = float("-inf")
         best_move = 0
 
@@ -183,9 +185,10 @@ class Game(ABC):
                         break
         return best_score
 
-    def qlearn_choose_move(self, token):
+    def qlearn_choose_move(self) -> int:
+        token = self.current_token
         state = self.get_state()
-        min_or_max = max if token == self.players[0].token else min
+        min_or_max = max if token == self.get_tokens()[0] else min
         if state in self.q_table:
             moves = self.get_remaining_moves()
             best_q = min_or_max(self.q_table[state][m] for m in moves)
@@ -200,7 +203,7 @@ class Game(ABC):
         pass
 
     def get_other(self, token: str) -> str:
-        return self.players[1].token if token == self.players[0].token else self.players[0].token
+        return self.get_tokens()[1] if token == self.get_tokens()[0] else self.get_tokens()[0]
 
     def get_other_player(self, player: Player) -> Player:
         return self.players[1] if player == self.players[0] else self.players[0]
@@ -208,10 +211,9 @@ class Game(ABC):
     @classmethod
     def start(cls):
         args = sys.argv
-        token1, token2 = cls.get_tokens()
         if "-train" in args:
             episodes = param_or_default(args, "-train", 10000)
-            game = cls(Player("qlearn", token1), Player("algo", token2), False)
+            game = cls(Player("qlearn"), Player("algo"), False)
             QLearner(game, episodes).train()
             print("Training complete.")
             exit()
@@ -223,18 +225,18 @@ class Game(ABC):
         if player1 == "qlearn" or player2 == "qlearn":
             q_table = load_q_table(cls.__name__)
 
-        player1 = Player(player1, token1)
-        player2 = Player(player2, token2)
+        player1 = Player(player1)
+        player2 = Player(player2)
 
-        stats = {player1.token: 0, player2.token: 0, "Tie": 0}
+        stats = [0, 0, 0]
         for i in trange(games):
             game = cls(player1, player2, visualise, max_depth, q_table)
 
-            # winner = game.play(reverse_order=bool(i % 2))
-            winner = game.play()
-            stats[winner] += 1
+            winner_index = game.play(reverse_order=bool(i % 2))
+            # winner = game.play()
+            stats[winner_index] += 1
 
         clear_screen()
-        print(f"Player {player1.token} ({player1.type}) wins: {stats[player1.token]}")
-        print(f"Player {player2.token} ({player2.type}) wins: {stats[player2.token]}")
-        print(f"Ties: {stats['Tie']}")
+        print(f"Player 1 ({player1.type}) wins: {stats[0]}")
+        print(f"Player 2 ({player2.type}) wins: {stats[1]}")
+        print(f"Ties: {stats[2]}")

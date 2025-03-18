@@ -26,7 +26,9 @@ class Connect4(Game):
         return True if self.cells[5][index - 1] != BLANK else False
 
     @override
-    def place_token(self, col, token):
+    def place_token(self, col: int, token: str = None):
+        if token is None:
+            token = self.current_token
         for i in range(6):
             if self.cells[i][col - 1] == BLANK:
                 self.cells[i][col - 1] = token

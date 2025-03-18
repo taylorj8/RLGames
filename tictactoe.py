@@ -34,7 +34,9 @@ class TicTacToe(Game):
         return True if self.cells[index - 1] != BLANK else False
 
     @override
-    def place_token(self, index, token):
+    def place_token(self, index: int, token: str = None):
+        if token is None:
+            token = self.current_token
         self.cells[index - 1] = token
         self.remaining_cells[index - 1] = "■"
 
@@ -73,9 +75,9 @@ class TicTacToe(Game):
         return good_doubles - bad_doubles
 
     @override
-    def human_choose_move(self, token):
+    def human_choose_move(self) -> int:
         while True:
-            print(f"Player {token}, choose a cell:\n{self.get_board()}")
+            print(f"Choose a cell:\n{self.get_board()}")
             key = readkey()
             if key.isdigit() and key != "0":
                 cell = int(key)
@@ -88,7 +90,8 @@ class TicTacToe(Game):
             clear_screen()
 
     @override
-    def algorithm_choose_move(self, token):
+    def algorithm_choose_move(self) -> int:
+        token = self.current_token
         if self.visualise:
             clear_screen()
             print(f"Player {token}\n{self.get_board()}")
@@ -105,7 +108,7 @@ class TicTacToe(Game):
 
         highest_count = ([], 0)
         for cell in remaining_cells:
-            self.place_token(cell, token)
+            self.place_token(cell)
             count = self.count_doubles(token)
             self.remove_token(cell)
             if count > highest_count[1]:

@@ -56,12 +56,13 @@ class QLearner:
         return blocked
 
     def train(self):
+        tokens = self.game.get_tokens()
         for i in range(1, sys.maxsize):
             for _ in trange(self.episodes):
-                token = self.game.get_tokens()[0]
+                token = tokens[0]
                 state = self.game.get_state()
                 while not self.game.game_over():
-                    if token == "X":
+                    if token == tokens[0]:
                         move = self.choose_move(state, max)
                     else:
                         move = self.choose_move(state, min)
@@ -69,21 +70,20 @@ class QLearner:
                     self.game.place_token(move, token)
 
                     # Reward is assigned from the active player's perspective.
-                    if self.game.check_win("X"):
+                    if self.game.check_win(token[0]):
                         reward = 50.0  # win for active player
-                    elif self.game.check_win("O"):
+                    elif self.game.check_win(token[1]):
                         reward = -50.0  # loss for active player
                     elif self.game.get_remaining_moves() == 0:
                         reward = 0.0  # draw
                     else:
                         # reward the player for creating doubles
-                        reward = self.game.count_doubles("X") - self.game.count_doubles("O")
+                        reward = self.game.count_doubles(token[0]) - self.game.count_doubles(token[1])
                         if blocked:
-                            if token == "X":
+                            if token == token[0]:
                                 reward += 5.0
                             else:
                                 reward -= 5.0
-                        # reward = 0.0
 
                     token = self.game.get_other(token)
                     next_state = self.game.get_state()
@@ -98,9 +98,9 @@ class QLearner:
             for _ in range(100):
                 winner = self.game.play()
                 self.game.reset()
-                if winner == "X":
+                if winner == tokens[0]:
                     stats[0] += 1
-                elif winner == "O":
+                elif winner == tokens[1]:
                     stats[1] += 1
                 else:
                     stats[2] += 1
