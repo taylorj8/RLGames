@@ -188,10 +188,10 @@ class Game(ABC):
     def qlearn_choose_move(self) -> int:
         token = self.current_token
         state = self.get_state()
-        min_or_max = max if token == self.get_tokens()[0] else min
+        # min_or_max = max if token == self.get_tokens()[0] else min
         if state in self.q_table:
             moves = self.get_remaining_moves()
-            best_q = min_or_max(self.q_table[state][m] for m in moves)
+            best_q = max(self.q_table[state][m] for m in moves)
             best_moves = [m for m in moves if self.q_table[state][m] == best_q]
             return random.choice(best_moves)
         else:

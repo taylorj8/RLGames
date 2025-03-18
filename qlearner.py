@@ -64,37 +64,32 @@ class QLearner:
         for i in range(1, sys.maxsize):
             for e in trange(self.episodes):
                 token = tokens[0]
+                state_history = []
+                move_history = []
+
+                # Play a game and record states/moves
                 state = self.game.get_state()
                 while not self.game.game_over():
-                    if token == tokens[0]:
-                        move = self.choose_move(state, max)
-                    else:
-                        move = self.choose_move(state, min)
-                    win_blocked = self.blocked_win(move, token)
+                    move = self.choose_move(state, max)
+                    state_history.append(state)
+                    move_history.append(move)
+
                     self.game.place_token(move, token)
-                    next_state = self.game.get_state()
-
-                    # Reward is assigned from the active player's perspective.
-                    if self.game.check_win(tokens[0]):
-                        reward = 50.0  # win for active player
-                    elif self.game.check_win(tokens[1]):
-                        reward = -50.0  # loss for active player
-                    elif self.game.get_remaining_moves() == 0:
-                        reward = 0.0  # draw
-                    else:
-                        # reward the player for creating doubles
-                        reward = self.game.count_doubles(tokens[0]) - self.game.count_doubles(tokens[1])
-                        if win_blocked:
-                            if token == tokens[0]:
-                                reward += 5.0
-                            else:
-                                reward -= 5.0
-
+                    state = self.game.get_state()
                     token = self.game.get_other(token)
 
-                    self.update_q_table(state, next_state, move, reward)
+                # Game is over - determine reward for final outcome
+                if self.game.check_win(tokens[0]):
+                    final_reward = 100.0  # Agent wins
+                elif self.game.check_win(tokens[1]):
+                    final_reward = -100.0  # Agent loses
+                else:
+                    final_reward = 0.0  # Draw
 
-                    state = next_state
+                # Backpropagate the final reward to all moves leading up to it
+                for state, move in zip(reversed(state_history), reversed(move_history)):
+                    self.update_q_table(state, state, move, final_reward)  # No next_state since game is over
+                    final_reward *= 0.9  # Discount reward slightly for earlier moves
                 self.game.reset()
 
             self.game.q_table = self.q_table
