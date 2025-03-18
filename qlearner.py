@@ -9,7 +9,7 @@ default_q = 0.0
 
 class QLearner:
     def __init__(self, game, episodes: int):
-        self.q_table = {} # state: (move: q_value)
+        self.q_tables = ({}, {}) # state: (move: q_value)
         self.game = game
         self.episodes = episodes
         self.alpha = 0.1
@@ -117,8 +117,10 @@ class QLearner:
                 break
             # self.epsilon = max(0.1, self.epsilon * 0.99999)
 
-        self.save_q_table(f"q_tables/{self.game.__class__.__name__}.json")
+        self.save_q_tables(self.game.__class__.__name__)
 
-    def save_q_table(self, file_name: str):
-        with open(file_name, "w") as f:
-            json.dump(self.q_table, f)
+    def save_q_tables(self, class_name: str):
+        with open(f"q_tables/{class_name}_first.json", "w") as file:
+            json.dump(self.q_tables[0], file)
+        with open(f"q_tables/{class_name}_first.json", "w") as file:
+            json.dump(self.q_tables[1], file)
