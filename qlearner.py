@@ -57,6 +57,9 @@ class QLearner:
         return blocked
 
     def train(self):
+        seed = random.randint(0, 1000000)
+        print("Training with seed:", seed)
+        random.seed(seed)
         tokens = self.game.get_tokens()
         for i in range(1, sys.maxsize):
             for e in trange(self.episodes):
@@ -67,8 +70,9 @@ class QLearner:
                         move = self.choose_move(state, max)
                     else:
                         move = self.choose_move(state, min)
-                    blocked = self.blocked_win(move, token)
+                    win_blocked = self.blocked_win(move, token)
                     self.game.place_token(move, token)
+                    next_state = self.game.get_state()
 
                     # Reward is assigned from the active player's perspective.
                     if self.game.check_win(tokens[0]):
@@ -80,36 +84,36 @@ class QLearner:
                     else:
                         # reward the player for creating doubles
                         reward = self.game.count_doubles(tokens[0]) - self.game.count_doubles(tokens[1])
-                        if blocked:
+                        if win_blocked:
                             if token == tokens[0]:
                                 reward += 5.0
                             else:
                                 reward -= 5.0
 
                     token = self.game.get_other(token)
-                    next_state = self.game.get_state()
 
                     self.update_q_table(state, next_state, move, reward)
 
                     state = next_state
-                self.game.reset(initial_token=e % 2)
-
-            stats = [0, 0, 0]
-            self.game.q_table = self.q_table
-            for j in range(100):
-                winner = self.game.play(reverse_order=bool(j % 2))
                 self.game.reset()
-                if winner == tokens[0]:
-                    stats[0] += 1
-                elif winner == tokens[1]:
-                    stats[1] += 1
-                else:
-                    stats[2] += 1
 
+            self.game.q_table = self.q_table
+
+            undefeated = True
             total_episodes = i * self.episodes
-            print(f"Episodes: {total_episodes}\nWins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
+            print(f"Episodes: {total_episodes}")
+            for reverse in [False, True]:
+                stats = [0, 0, 0]
+                for _ in range(100):
+                    winner = self.game.play(reverse_order=reverse)
+                    self.game.reset()
+                    stats[winner] += 1
+                if stats[1] > 0:
+                    undefeated = False
+                print(f"{"Going second - " if reverse else "Going first - "}Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
+
             # break if no losses
-            if stats[1] == 0:
+            if undefeated:
                 break
             # self.epsilon = max(0.1, self.epsilon * 0.99999)
 
