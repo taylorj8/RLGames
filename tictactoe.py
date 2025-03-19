@@ -78,7 +78,7 @@ class TicTacToe(Game):
     @override
     def human_choose_move(self) -> int:
         while True:
-            print(f"Choose a cell:\n{self.get_board()}")
+            print(f"Player {self.current_token}, choose a cell:\n{self.get_board()}")
             key = readkey()
             if key.isdigit() and key != "0":
                 cell = int(key)

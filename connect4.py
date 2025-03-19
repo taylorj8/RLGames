@@ -1,5 +1,4 @@
 import random
-import time
 from typing import override
 from readchar import readkey
 
@@ -122,13 +121,13 @@ class Connect4(Game):
         return good_runs_of_three * 2 + good_runs_of_two - bad_runs_of_three * 2 - bad_runs_of_two
 
     @override
-    def human_choose_move(self, token):
+    def human_choose_move(self):
         while True:
-            print(f"Player {token}, choose a column:\n{self.get_board()}")
+            print(f"Player {self.current_token}, choose a column:\n{self.get_board()}")
             key = readkey()
             if key.isdigit():
                 column = int(key)
-                if not self.column_full(column) and 1 <= column <= 7:
+                if 1 <= column <= 7 and not self.column_full(column):
                     return column
 
             clear_screen()
@@ -142,14 +141,13 @@ class Connect4(Game):
     # else do the same with 2 tokens and 2 blanks
     # else choose randomly
     @override
-    def algorithm_choose_move(self, token):
+    def algorithm_choose_move(self):
         if self.visualise:
             clear_screen()
-            print(f"Player {token}\n{self.get_board()}")
-            time.sleep(0.5)
+            print(f"Player {self.current_token}\n{self.get_board()}")
 
         remaining_columns = self.get_remaining_moves()
-        for t in [token, self.get_other(token)]:
+        for t in [self.current_token, self.get_other(self.current_token)]:
             for col in remaining_columns:
                 self.place_token(col, t)
                 win = self.check_win()
@@ -158,11 +156,11 @@ class Connect4(Game):
                     return col
 
         for threshold in [3, 2]:
-            baseline = self.count_runs(token, threshold)
+            baseline = self.count_runs(self.current_token, threshold)
             highest_wins = ([], baseline)
             for col in remaining_columns:
-                self.place_token(col, token)
-                wins = self.count_runs(token, threshold)
+                self.place_token(col)
+                wins = self.count_runs(self.current_token, threshold)
                 self.remove_token(col)
                 if wins > highest_wins[1]:
                     highest_wins = ([col], wins)

@@ -81,11 +81,8 @@ class Game(ABC):
 
         winner_index = self.game_loop(reverse_order)
 
-        if self.check_win():
-            self.print(f"Player {winner_index+1} wins!")
-        else:
-            self.print("The game ended in a tie.")
-            winner_index = 2
+        clear_screen()
+        self.print(f"Player {winner_index+1} wins!" if self.check_win() else "The game ended in a tie.")
         self.print(self.get_board())
         self.await_key()
         return winner_index
@@ -95,18 +92,19 @@ class Game(ABC):
         for i in range(self.max_moves):
             player = self.players[(i + offset) % 2]
             pos = self.choose_move(player)
-            if self.visualise:
-                clear_screen()
 
             self.place_token(pos)
             if self.check_win():
                 break
             self.swap_tokens()
+            clear_screen()
+            self.print(f"Player {self.current_token}\n{self.get_board()}")
         return self.players.index(player)
 
     def choose_move(self, player: Player) -> int:
         match player.type:
             case "human":
+                clear_screen()
                 move = self.human_choose_move()
             case "random":
                 move = random.choice(self.get_remaining_moves())
