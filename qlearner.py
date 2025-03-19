@@ -1,6 +1,5 @@
 import json
 import random
-import sys
 
 from tqdm import trange
 
@@ -9,10 +8,11 @@ from util import Parameters
 default_q = 0.0
 
 class QLearner:
-    def __init__(self, game, episodes: int):
+    def __init__(self, game, batches: int, batch_size: int):
         self.q_table = {} # state: (move: q_value)
         self.game = game
-        self.batches = episodes
+        self.batches = batches
+        self.batch_size = batch_size
         self.alpha = 0.1
         self.gamma = 0.9
         self.epsilon = 1.0
@@ -23,22 +23,24 @@ class QLearner:
         self.epsilon = 1.0
 
     def get_moves_from_state(self, state: str) -> list[int]:
+        if self.game.__class__.__name__ == "Connect4":
+            state = state[35:]
         return [i for i, char in enumerate(state, 1) if char == " "]
 
     def get_q_value(self, state, move):
         if state not in self.q_table:
-            self.q_table[state] = {m: default_q for m in self.get_moves_from_state(state)}
+            self.q_table[state] = {m: default_q for m in self.game.get_remaining_moves()}
         if move not in self.q_table[state]:
             self.q_table[state][move] = default_q
         return self.q_table[state][move]
 
-    def choose_move(self, state: str, min_or_max: callable) -> int:
+    def choose_move(self, state: str) -> int:
         remaining_moves = self.game.get_remaining_moves()
         if random.uniform(0, 1) < self.epsilon:
             return random.choice(remaining_moves)
         q_values = [self.get_q_value(state, move) for move in remaining_moves]
 
-        max_q = min_or_max(q_values)
+        max_q = max(q_values)
         best_moves = [i for i, q in enumerate(q_values) if q == max_q]
         i = random.choice(best_moves)
         return remaining_moves[i]
@@ -63,10 +65,11 @@ class QLearner:
         return blocked
 
     def train_once(self, params: Parameters):
+        print("Training agent that goes first" if params.goes_first else "Training agent that goes second")
         tokens = self.game.get_tokens()
         agent, opponent = (tokens[0], tokens[1]) if params.goes_first else (tokens[1], tokens[0])
         for i in range(1, self.batches+1):
-            for e in trange(50000):
+            for e in trange(self.batch_size):
                 token = tokens[0]
                 state_history = []
                 move_history = []
@@ -76,7 +79,7 @@ class QLearner:
                 move_number = 0
                 while not self.game.game_over():
                     if token == agent:
-                        move = self.choose_move(state, max)
+                        move = self.choose_move(state)
                         state_history.append(state)
                         move_history.append(move)
                     else:
@@ -100,7 +103,7 @@ class QLearner:
 
                 # Backpropagate the final reward to all moves leading up to it
                 for state, move in zip(reversed(state_history), reversed(move_history)):
-                    self.update_q_table(state, state, move, final_reward)  # No next_state since game is over TODO
+                    self.update_q_table(state, state, move, final_reward)
                     # final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
@@ -109,7 +112,7 @@ class QLearner:
 
             self.game.q_tables[agent] = self.q_table
 
-            total_episodes = i * 50000
+            total_episodes = i * self.batch_size
             print(f"Total episodes: {total_episodes}")
             stats = [0, 0, 0]
             testing_games = 1000
@@ -126,13 +129,15 @@ class QLearner:
         file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
         self.save_q_table(file_name)
 
-    def train(self, seed: int, first_params: Parameters, second_params: Parameters):
-        print("Training with seed:", seed)
+    def train(self, seed: int, first_params: Parameters, second_params: Parameters, order: str):
+        print("Seed:", seed)
         random.seed(seed)
 
-        self.train_once(first_params)
-        self.reset()
-        self.train_once(second_params)
+        if order == "first" or order == "both":
+            self.train_once(first_params)
+            self.reset()
+        if order == "second" or order == "both":
+            self.train_once(second_params)
 
     def save_q_table(self, file_name: str):
         with open(file_name, "w") as file:

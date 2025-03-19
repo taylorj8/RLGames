@@ -16,7 +16,6 @@ class Parameters:
     draw_reward: float
     loss_threshold: float
     draw_threshold: float
-    # max_depth: int
 
 
 def swap_order(player1: Player, player2: Player):

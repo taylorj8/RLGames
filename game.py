@@ -81,8 +81,13 @@ class Game(ABC):
 
         winner_index = self.game_loop(reverse_order)
 
-        clear_screen()
-        self.print(f"Player {winner_index+1} wins!" if self.check_win() else "The game ended in a tie.")
+        if self.visualise:
+            clear_screen()
+        if self.check_win():
+            self.print(f"Player {winner_index+1} wins!")
+        else:
+            self.print("The game ended in a tie.")
+            winner_index = 2
         self.print(self.get_board())
         self.await_key()
         return winner_index
@@ -97,7 +102,6 @@ class Game(ABC):
             if self.check_win():
                 break
             self.swap_tokens()
-            clear_screen()
             self.print(f"Player {self.current_token}\n{self.get_board()}")
         return self.players.index(player)
 
@@ -189,7 +193,6 @@ class Game(ABC):
 
     def qlearn_choose_move(self) -> int:
         state = self.get_state()
-        # min_or_max = max if token == self.get_tokens()[0] else min
         q_table = self.q_tables[self.current_token]
         if state in q_table:
             moves = self.get_remaining_moves()
@@ -215,13 +218,20 @@ class Game(ABC):
         args = sys.argv
         if "-train" in args:
             batches = param_or_default(args, "-train", 10)
+            batch_size = param_or_default(args, "-b", 50000)
             seed = param_or_default(args, "-s", random.randint(0, 1000000))
             game = cls(Player("qlearn"), Player("random"), False)
 
-            first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
-            second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
+            if cls.__name__ == "TicTacToe":
+                first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
+                second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
+            else:
+                first_parameters = Parameters(True, 30.0, -20.0, 1.0, 0.5, 0.01)
+                second_parameters = Parameters(False, 30.0, -20.0, 1.0, 0.5, 0.01)
 
-            QLearner(game, batches).train(seed, first_parameters, second_parameters)
+            order = param_or_default(args, "-o", "both")
+
+            QLearner(game, batches, batch_size).train(seed, first_parameters, second_parameters, order)
             print("Training complete.")
             exit()
 

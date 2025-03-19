@@ -69,7 +69,15 @@ class Connect4(Game):
 
     @override
     def get_state(self) -> str:
-        return "".join([x for row in self.cells for x in row])
+        def convert_token(x: str):
+            match x:
+                case "  ":
+                    return " "
+                case "🔴":
+                    return "R"
+                case "🔵":
+                    return "B"
+        return "".join([convert_token(x) for row in self.cells for x in row])
 
     @override
     def check_win(self, token=None) -> bool:
