@@ -15,13 +15,17 @@ class Game(ABC):
     max_moves = 0
     start_instructions = ""
 
-    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_table=None):
+    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_tables=None):
+        if q_tables is None:
+            q_tables = {}
         self.visualise = visualise
         self.players: Tuple[Player, Player] = (player1, player2)
         self.cells = []
         self.remaining_cells = None
         self.max_depth = max_depth
-        self.q_table = q_table
+        if q_tables is None:
+            q_tables = {}
+        self.q_tables = q_tables
         self.current_token = self.get_tokens()[0]
 
     def print(self, message: str):
@@ -36,7 +40,7 @@ class Game(ABC):
         self.current_token = self.get_other(self.current_token)
 
     @abstractmethod
-    def reset(self, reverse_order=False):
+    def reset(self):
         pass
 
     @abstractmethod
@@ -186,13 +190,13 @@ class Game(ABC):
         return best_score
 
     def qlearn_choose_move(self) -> int:
-        token = self.current_token
         state = self.get_state()
         # min_or_max = max if token == self.get_tokens()[0] else min
-        if state in self.q_table:
+        q_table = self.q_tables[self.current_token]
+        if state in q_table:
             moves = self.get_remaining_moves()
-            best_q = max(self.q_table[state][m] for m in moves)
-            best_moves = [m for m in moves if self.q_table[state][m] == best_q]
+            best_q = max(q_table[state][m] for m in moves)
+            best_moves = [m for m in moves if q_table[state][m] == best_q]
             return random.choice(best_moves)
         else:
             return random.choice(self.get_remaining_moves())
@@ -212,28 +216,28 @@ class Game(ABC):
     def start(cls):
         args = sys.argv
         if "-train" in args:
-            episodes = param_or_default(args, "-train", 10000)
-            game = cls(Player("qlearn"), Player("algo"), False)
-            QLearner(game, episodes).train()
+            batches = param_or_default(args, "-train", 10)
+            game = cls(Player("qlearn"), Player("random"), False)
+            QLearner(game, batches).train()
             print("Training complete.")
             exit()
 
         player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
 
-        q_table = None
+        q_tables = {}
         if player1 == "qlearn" or player2 == "qlearn":
-            q_table = load_q_table(cls.__name__)
+            q_tables = load_q_tables(cls.__name__, cls.get_tokens())
 
         player1 = Player(player1)
         player2 = Player(player2)
 
         stats = [0, 0, 0]
         for i in trange(games):
-            game = cls(player1, player2, visualise, max_depth, q_table)
+            game = cls(player1, player2, visualise, max_depth, q_tables)
 
-            winner_index = game.play(reverse_order=bool(i % 2))
-            # winner = game.play()
+            # winner_index = game.play(reverse_order=bool(i % 2))
+            winner_index = game.play()
             stats[winner_index] += 1
 
         clear_screen()

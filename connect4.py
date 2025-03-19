@@ -18,10 +18,10 @@ class Connect4(Game):
         self.cols = [x for x in range(1, 8)]
 
     @override
-    def reset(self, initial_token=0):
+    def reset(self):
         self.cells = [[BLANK] * 7 for _ in range(6)]
         self.cols = [x for x in range(1, 8)]
-        self.current_token = self.get_tokens()[initial_token]
+        self.current_token = self.get_tokens()[0]
 
     def column_full(self, index):
         return True if self.cells[5][index - 1] != BLANK else False

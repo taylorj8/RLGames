@@ -23,10 +23,10 @@ class TicTacToe(Game):
         self.remaining_cells = [i for i in range(1, 10)]
 
     @override
-    def reset(self, initial_token=0):
+    def reset(self):
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
-        self.current_token = self.get_tokens()[initial_token]
+        self.current_token = self.get_tokens()[0]
 
     def get_remaining_moves(self) -> list[int]:
         return [x for x in self.remaining_cells if type(x) == int]
