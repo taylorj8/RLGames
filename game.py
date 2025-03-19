@@ -71,14 +71,6 @@ class Game(ABC):
         return self.check_win() or not self.get_remaining_moves()
 
     def play(self, reverse_order=False) -> int:
-        if self.visualise and self.players[0].type == "human" or self.players[1].type == "human":
-            clear_screen()
-            print(self.start_instructions)
-            print(self.get_board(self.remaining_cells))
-            print("Press any key to start.")
-            readkey()
-            clear_screen()
-
         winner_index = self.game_loop(reverse_order)
 
         if self.visualise:
@@ -213,6 +205,15 @@ class Game(ABC):
     def get_other_player(self, player: Player) -> Player:
         return self.players[1] if player == self.players[0] else self.players[0]
 
+    def start_message(self):
+        if self.visualise and self.players[0].type == "human" or self.players[1].type == "human":
+            clear_screen()
+            print(self.start_instructions)
+            print(self.get_board(self.remaining_cells))
+            print("Press any key to start.")
+            readkey()
+            clear_screen()
+
     @classmethod
     def training_setup(cls, board_size=None):
         args = sys.argv
@@ -225,8 +226,9 @@ class Game(ABC):
             first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
             second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
         else:
-            first_parameters = Parameters(True, 30.0, -20.0, -1.0, 0.05, 0.01)
-            second_parameters = Parameters(False, 30.0, -20.0, -1.0, 0.05, 0.01)
+            grid_size = board_size[0] * board_size[1]
+            first_parameters = Parameters(True, grid_size + 15.0, -grid_size - 10.0, -5.0, 0.05, 0.02)
+            second_parameters = Parameters(False, grid_size + 15.0, -grid_size - 10.0, -5.0, 0.5, 0.5)
 
         order = param_or_default(args, "-o", "both")
 
@@ -246,15 +248,16 @@ class Game(ABC):
 
         q_tables = {}
         if player1 == "qlearn" or player2 == "qlearn":
-            q_tables = load_q_tables(cls.__name__, cls.get_tokens())
+            size = f"{board_size[0]}x{board_size[1]}_" if cls.__name__ == "Connect4" else ""
+            q_tables = load_q_tables(cls.__name__, cls.get_tokens(), size, True)
 
         player1 = Player(player1)
         player2 = Player(player2)
 
         stats = [0, 0, 0]
         game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
+        game.start_message()
         for i in trange(games):
-
             winner_index = game.play(reverse_order=bool(i % 2))
             # winner_index = game.play()
             stats[winner_index] += 1

@@ -77,7 +77,7 @@ class Connect4(Game):
                     return "R"
                 case "🔵":
                     return "B"
-        return "".join([convert_token(x) for row in self.cells for x in row]).rstrip()
+        return "".join([convert_token(x) for row in self.cells for x in row])
 
     @override
     def check_win(self, token=None) -> bool:

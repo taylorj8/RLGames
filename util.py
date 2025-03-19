@@ -52,8 +52,8 @@ def get_from_args(args):
     return player1, player2, games, max_depth
 
 
-def load_q_tables(game: str, tokens: list[str], pickled=False) -> dict:
-    return {tokens[0]: load_q_table(f"{game}_first", pickled), tokens[1]: load_q_table(f"{game}_second", pickled)}
+def load_q_tables(game: str, tokens: list[str], size="", pickled=False) -> dict:
+    return {tokens[0]: load_q_table(f"{game}_{size}first", pickled), tokens[1]: load_q_table(f"{game}_{size}second", pickled)}
 
 def load_q_table(name: str, pickled: bool) -> dict:
     file_name = f"q_tables/{name}.pkl" if pickled else f"q_tables/{name}.json"

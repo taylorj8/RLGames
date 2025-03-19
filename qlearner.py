@@ -25,7 +25,8 @@ class QLearner:
 
     def get_moves_from_state(self, state: str) -> list[int]:
         if self.game.__class__.__name__ == "Connect4":
-            state = state[35:]
+            top_row_index = self.game.width * (self.game.height-1)
+            state = state[top_row_index:]
         return [i for i, char in enumerate(state, 1) if char == " "]
 
     def get_q_value(self, state, move):
@@ -105,7 +106,7 @@ class QLearner:
                 # Backpropagate the final reward to all moves leading up to it
                 for state, move in zip(reversed(state_history), reversed(move_history)):
                     self.update_q_table(state, state, move, final_reward)
-                    # final_reward *= self.gamma # Discount reward slightly for earlier moves
+                    final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
                 self.alpha = max(0.01, self.alpha * 0.99999)
@@ -127,7 +128,7 @@ class QLearner:
             if stats[1] <= testing_games * params.loss_threshold and stats[2] <= testing_games * params.draw_threshold:
                 break
 
-        file_name = f"q_tables/{self.game.__class__.__name__}_first" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second"
+        file_name = self.get_file_name(params.goes_first)
         self.save_q_table(file_name, True)
 
     def train(self, seed: int, first_params: Parameters, second_params: Parameters, order: str):
@@ -140,9 +141,17 @@ class QLearner:
         if order == "second" or order == "both":
             self.train_once(second_params)
 
+    def get_file_name(self, goes_first: bool) -> str:
+        order = "first" if goes_first else "second"
+        if self.game.__class__.__name__ == "Connect4":
+            size = f"{self.game.width}x{self.game.height}_"
+        else:
+            size = ""
+
+        return f"q_tables/{self.game.__class__.__name__}_{size}{order}"
+
     def save_q_table(self, file_name: str, pickled=False):
-        with open(file_name, "w") as file:
-            if pickled:
-                pickle.dump(self.q_table, f"{file}.pkl")
-            else:
-                json.dump(self.q_table, f"{file}.json")
+        file_name = f"{file_name}.pkl" if pickled else f"{file_name}.json"
+        mode = 'wb' if pickled else 'w'
+        with open(file_name, mode) as file:
+            pickle.dump(self.q_table, file) if pickled else json.dump(self.q_table, file)
