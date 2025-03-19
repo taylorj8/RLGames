@@ -99,7 +99,7 @@ class QLearner:
 
                 # Backpropagate the final reward to all moves leading up to it
                 for state, move in zip(reversed(state_history), reversed(move_history)):
-                    self.update_q_table(state, state, move, final_reward)  # No next_state since game is over
+                    self.update_q_table(state, state, move, final_reward)  # No next_state since game is over TODO
                     final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
@@ -112,25 +112,24 @@ class QLearner:
             print(f"Total episodes: {total_episodes}")
             stats = [0, 0, 0]
             testing_games = 1000
-            for _ in range(testing_games):
+            for i in range(testing_games):
                 winner = self.game.play(not goes_first)
                 self.game.reset()
                 stats[winner] += 1
             print(f"Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
 
-            # break if no losses and under 1/4 ties
-            if stats[1] == 0 and stats[2] < testing_games / 4:
+            # break if no losses and under 10% ties
+            if stats[1] == 0 and stats[2] < testing_games / 10:
                 break
 
         file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
         self.save_q_table(file_name)
 
-    def train(self):
-        seed = random.randint(0, 1000000)
+    def train(self, seed: int):
         print("Training with seed:", seed)
         random.seed(seed)
 
-        self.train_once(goes_first=True)
+        # self.train_once(goes_first=True)
         self.reset()
         self.train_once(goes_first=False)
 
