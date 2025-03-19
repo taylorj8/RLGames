@@ -77,12 +77,17 @@ class QLearner:
                         move = self.choose_move(state, max)
                         state_history.append(state)
                         move_history.append(move)
+                        if self.blocked_win(move, agent):
+                            immediate_reward = 5.0
+                            self.update_q_table(state, self.game.get_state(), move, immediate_reward)
                     else:
                         move = random.choice(self.game.get_remaining_moves())
 
                     self.game.place_token(move, token)
                     state = self.game.get_state()
                     token = self.game.get_other(token)
+
+
 
                 # Game is over - determine reward for final outcome
                 if self.game.check_win(agent):
@@ -98,22 +103,24 @@ class QLearner:
                     final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
+                self.alpha = max(0.01, self.alpha * 0.99999)
+                self.epsilon = max(0.1, self.epsilon * 0.99999)
+
             self.game.q_tables[agent] = self.q_table
 
             total_episodes = i * 50000
             print(f"Total episodes: {total_episodes}")
             stats = [0, 0, 0]
-            for _ in range(100):
+            testing_games = 1000
+            for _ in range(testing_games):
                 winner = self.game.play(not goes_first)
                 self.game.reset()
                 stats[winner] += 1
             print(f"Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
 
-            # break if no losses and under 30 ties
-            if stats[1] == 0 and stats[2] < 30:
+            # break if no losses and under 1/4 ties
+            if stats[1] == 0 and stats[2] < testing_games / 4:
                 break
-            self.alpha = max(0.01, self.alpha * 0.99999)
-            self.epsilon = max(0.1, self.epsilon * 0.99999)
 
         file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
         self.save_q_table(file_name)
@@ -123,9 +130,9 @@ class QLearner:
         print("Training with seed:", seed)
         random.seed(seed)
 
-        self.train_once(True)
+        self.train_once(goes_first=True)
         self.reset()
-        self.train_once(False)
+        self.train_once(goes_first=False)
 
     def save_q_table(self, file_name: str):
         with open(file_name, "w") as file:

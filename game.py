@@ -236,8 +236,8 @@ class Game(ABC):
         for i in trange(games):
             game = cls(player1, player2, visualise, max_depth, q_tables)
 
-            # winner_index = game.play(reverse_order=bool(i % 2))
-            winner_index = game.play()
+            winner_index = game.play(reverse_order=bool(i % 2))
+            # winner_index = game.play()
             stats[winner_index] += 1
 
         clear_screen()
