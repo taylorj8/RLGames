@@ -1,4 +1,5 @@
 import json
+import pickle
 import random
 
 from tqdm import trange
@@ -126,8 +127,8 @@ class QLearner:
             if stats[1] == testing_games * params.loss_threshold and stats[2] < testing_games * params.draw_threshold:
                 break
 
-        file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
-        self.save_q_table(file_name)
+        file_name = f"q_tables/{self.game.__class__.__name__}_first" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second"
+        self.save_q_table(file_name, True)
 
     def train(self, seed: int, first_params: Parameters, second_params: Parameters, order: str):
         print("Seed:", seed)
@@ -139,6 +140,9 @@ class QLearner:
         if order == "second" or order == "both":
             self.train_once(second_params)
 
-    def save_q_table(self, file_name: str):
+    def save_q_table(self, file_name: str, pickled=False):
         with open(file_name, "w") as file:
-            json.dump(self.q_table, file)
+            if pickled:
+                pickle.dump(self.q_table, f"{file}.pkl")
+            else:
+                json.dump(self.q_table, f"{file}.json")
