@@ -219,7 +219,11 @@ class Game(ABC):
             batches = param_or_default(args, "-train", 10)
             seed = param_or_default(args, "-s", random.randint(0, 1000000))
             game = cls(Player("qlearn"), Player("random"), False)
-            QLearner(game, batches).train(seed)
+
+            first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
+            second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
+
+            QLearner(game, batches).train(seed, first_parameters, second_parameters)
             print("Training complete.")
             exit()
 
@@ -237,8 +241,8 @@ class Game(ABC):
         for i in trange(games):
             game = cls(player1, player2, visualise, max_depth, q_tables)
 
-            # winner_index = game.play(reverse_order=bool(i % 2))
-            winner_index = game.play()
+            winner_index = game.play(reverse_order=bool(i % 2))
+            # winner_index = game.play()
             stats[winner_index] += 1
 
         clear_screen()

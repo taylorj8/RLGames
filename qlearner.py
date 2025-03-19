@@ -4,6 +4,7 @@ import sys
 
 from tqdm import trange
 
+from util import Parameters
 
 default_q = 0.0
 
@@ -61,9 +62,9 @@ class QLearner:
         self.game.remove_token(move)
         return blocked
 
-    def train_once(self, goes_first: bool):
+    def train_once(self, params: Parameters):
         tokens = self.game.get_tokens()
-        agent, opponent = (tokens[0], tokens[1]) if goes_first else (tokens[1], tokens[0])
+        agent, opponent = (tokens[0], tokens[1]) if params.goes_first else (tokens[1], tokens[0])
         for i in range(1, self.batches+1):
             for e in trange(50000):
                 token = tokens[0]
@@ -72,35 +73,35 @@ class QLearner:
 
                 # Play a game and record states/moves
                 state = self.game.get_state()
+                move_number = 0
                 while not self.game.game_over():
                     if token == agent:
                         move = self.choose_move(state, max)
                         state_history.append(state)
                         move_history.append(move)
-                        if self.blocked_win(move, agent):
-                            immediate_reward = 5.0
-                            self.update_q_table(state, self.game.get_state(), move, immediate_reward)
                     else:
                         move = random.choice(self.game.get_remaining_moves())
 
                     self.game.place_token(move, token)
                     state = self.game.get_state()
                     token = self.game.get_other(token)
-
-
+                    move_number += 1
 
                 # Game is over - determine reward for final outcome
                 if self.game.check_win(agent):
-                    final_reward = 10.0  # Agent wins
+                    # final_reward = 20.0 - move_number  # Agent wins
+                    final_reward = params.win_reward - move_number
                 elif self.game.check_win(opponent):
-                    final_reward = -10.0  # Agent loses
+                    # final_reward = -100.0 - move_number  # Agent loses
+                    final_reward = params.loss_reward + move_number
                 else:
-                    final_reward = 0.0  # Draw
+                    # final_reward = 5.0  # Draw
+                    final_reward = params.draw_reward
 
                 # Backpropagate the final reward to all moves leading up to it
                 for state, move in zip(reversed(state_history), reversed(move_history)):
                     self.update_q_table(state, state, move, final_reward)  # No next_state since game is over TODO
-                    final_reward *= self.gamma # Discount reward slightly for earlier moves
+                    # final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
                 self.alpha = max(0.01, self.alpha * 0.99999)
@@ -112,26 +113,26 @@ class QLearner:
             print(f"Total episodes: {total_episodes}")
             stats = [0, 0, 0]
             testing_games = 1000
-            for i in range(testing_games):
-                winner = self.game.play(not goes_first)
+            for j in range(testing_games):
+                winner = self.game.play(not params.goes_first)
                 self.game.reset()
                 stats[winner] += 1
             print(f"Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
 
             # break if no losses and under 10% ties
-            if stats[1] == 0 and stats[2] < testing_games / 10:
+            if stats[1] == testing_games * params.loss_threshold and stats[2] < testing_games * params.draw_threshold:
                 break
 
-        file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
+        file_name = f"q_tables/{self.game.__class__.__name__}_first.json" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second.json"
         self.save_q_table(file_name)
 
-    def train(self, seed: int):
+    def train(self, seed: int, first_params: Parameters, second_params: Parameters):
         print("Training with seed:", seed)
         random.seed(seed)
 
-        # self.train_once(goes_first=True)
+        self.train_once(first_params)
         self.reset()
-        self.train_once(goes_first=False)
+        self.train_once(second_params)
 
     def save_q_table(self, file_name: str):
         with open(file_name, "w") as file:

@@ -8,6 +8,16 @@ from dataclasses import dataclass
 class Player:
     type: str
 
+@dataclass()
+class Parameters:
+    goes_first: bool
+    win_reward: float
+    loss_reward: float
+    draw_reward: float
+    loss_threshold: float
+    draw_threshold: float
+    # max_depth: int
+
 
 def swap_order(player1: Player, player2: Player):
     player1.order, player2.order = player2.order, player1.order
