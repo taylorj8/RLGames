@@ -124,7 +124,7 @@ class QLearner:
             print(f"Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
 
             # break if no losses and under 10% ties
-            if stats[1] == testing_games * params.loss_threshold and stats[2] < testing_games * params.draw_threshold:
+            if stats[1] <= testing_games * params.loss_threshold and stats[2] <= testing_games * params.draw_threshold:
                 break
 
         file_name = f"q_tables/{self.game.__class__.__name__}_first" if params.goes_first else f"q_tables/{self.game.__class__.__name__}_second"

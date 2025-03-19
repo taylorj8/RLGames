@@ -71,12 +71,12 @@ class Game(ABC):
         return self.check_win() or not self.get_remaining_moves()
 
     def play(self, reverse_order=False) -> int:
-        if self.visualise:
+        if self.visualise and self.players[0].type == "human" or self.players[1].type == "human":
             clear_screen()
             print(self.start_instructions)
             print(self.get_board(self.remaining_cells))
             print("Press any key to start.")
-            # readkey()
+            readkey()
             clear_screen()
 
         winner_index = self.game_loop(reverse_order)
@@ -214,26 +214,32 @@ class Game(ABC):
         return self.players[1] if player == self.players[0] else self.players[0]
 
     @classmethod
-    def start(cls):
+    def training_setup(cls, board_size=None):
+        args = sys.argv
+        batches = param_or_default(args, "-train", 10)
+        batch_size = param_or_default(args, "-b", 50000)
+        seed = param_or_default(args, "-s", random.randint(0, 1000000))
+        game = cls(Player("qlearn"), Player("random"), False, board_size)
+
+        if cls.__name__ == "TicTacToe":
+            first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
+            second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
+        else:
+            first_parameters = Parameters(True, 30.0, -20.0, -1.0, 0.05, 0.01)
+            second_parameters = Parameters(False, 30.0, -20.0, -1.0, 0.05, 0.01)
+
+        order = param_or_default(args, "-o", "both")
+
+        QLearner(game, batches, batch_size).train(seed, first_parameters, second_parameters, order)
+        print("Training complete.")
+        exit()
+
+    @classmethod
+    def start(cls, board_size=None):
         args = sys.argv
         if "-train" in args:
-            batches = param_or_default(args, "-train", 10)
-            batch_size = param_or_default(args, "-b", 50000)
-            seed = param_or_default(args, "-s", random.randint(0, 1000000))
-            game = cls(Player("qlearn"), Player("random"), False)
-
-            if cls.__name__ == "TicTacToe":
-                first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
-                second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
-            else:
-                first_parameters = Parameters(True, 30.0, -20.0, 1.0, 0.5, 0.01)
-                second_parameters = Parameters(False, 30.0, -20.0, 1.0, 0.5, 0.01)
-
-            order = param_or_default(args, "-o", "both")
-
-            QLearner(game, batches, batch_size).train(seed, first_parameters, second_parameters, order)
-            print("Training complete.")
-            exit()
+            cls.training_setup(board_size)
+            return
 
         player1, player2, games, max_depth = get_from_args(args)
         visualise = "-v" in args or player1 == "human" or player2 == "human"
@@ -246,12 +252,13 @@ class Game(ABC):
         player2 = Player(player2)
 
         stats = [0, 0, 0]
+        game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
         for i in trange(games):
-            game = cls(player1, player2, visualise, max_depth, q_tables)
 
             winner_index = game.play(reverse_order=bool(i % 2))
             # winner_index = game.play()
             stats[winner_index] += 1
+            game.reset()
 
         clear_screen()
         print(f"Player 1 ({player1.type}) wins: {stats[0]}")

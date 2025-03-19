@@ -17,7 +17,7 @@ class TicTacToe(Game):
     start_instructions = "Welcome to TicTacToe! The game is played using the numpad. The numbers correspond to squares as follows:"
     winning_subsets = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]
 
-    def __init__(self, player1, player2, visualise, max_depth=9, q_table=None):
+    def __init__(self, player1, player2, visualise, board_size=None, max_depth=9, q_table=None):
         super().__init__(player1, player2, visualise, max_depth, q_table)
         self.cells = [BLANK] * 9
         self.remaining_cells = [i for i in range(1, 10)]
