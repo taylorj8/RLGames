@@ -1,11 +1,31 @@
 import json
+import pickle
 import os
 import sys
 from dataclasses import dataclass
 
 
+@dataclass
+class Player:
+    type: str
+
+@dataclass()
+class Parameters:
+    goes_first: bool
+    win_reward: float
+    loss_reward: float
+    draw_reward: float
+    loss_threshold: float
+    draw_threshold: float
+
+
+def swap_order(player1: Player, player2: Player):
+    player1.order, player2.order = player2.order, player1.order
+
+
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
+
 
 # get the value of a parameter or return the default value
 def param_or_default(args, flag, default):
@@ -17,6 +37,7 @@ def param_or_default(args, flag, default):
             return int(value)
         return args[args.index(flag) + 1].lower()
     return default
+
 
 # get the values of the parameters from the command line arguments
 def get_from_args(args):
@@ -31,17 +52,17 @@ def get_from_args(args):
     return player1, player2, games, max_depth
 
 
-def load_q_table(game: str) -> dict:
-    file_name = f"q_tables/{game}.json"
+def load_q_tables(game: str, tokens: list[str], size="", pickled=False) -> dict:
+    return {tokens[0]: load_q_table(f"{game}_{size}first", pickled), tokens[1]: load_q_table(f"{game}_{size}second", pickled)}
+
+def load_q_table(name: str, pickled: bool) -> dict:
+    file_name = f"q_tables/{name}.pkl" if pickled else f"q_tables/{name}.json"
     if not os.path.exists(file_name):
-        print(f"Q-learning has not been trained for {game}.")
+        print(f"Q-learning has not been trained for {name}.")
         exit()
-    with open(file_name, "r") as f:
-        table = json.load(f)
+    with open(file_name, "r") as file:
+        if pickled:
+            return pickle.load(file)
+        else:
+            table = json.load(file)
         return {k: {int(k2): v2 for k2, v2 in v.items()} for k, v in table.items()}
-
-
-@dataclass
-class Player:
-    type: str
-    token: str
