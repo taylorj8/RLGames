@@ -188,7 +188,7 @@ class Game(ABC):
             # place the token, get the best score for that move, and remove the token
             # repeat this for each move to find the best one
             self.place_token(move, player)
-            score = self.minimax(player, opponent, 0, False, self.max_depth, alpha, beta)
+            score = self.minimax(player, opponent, 0, False, alpha, beta)
             self.remove_token(move)
 
             if score > best_score:
@@ -197,13 +197,13 @@ class Game(ABC):
         return best_move
 
     # the minimax algorithm
-    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth, alpha, beta) -> int:
+    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, alpha, beta) -> int:
         # reward the player if they win, penalise if the opponent wins
         # reward is higher if the win is sooner, penalty is higher if the loss is later
         if self.check_win(player):
-            return max_depth - depth + 1
+            return self.max_depth - depth + 1
         elif self.check_win(opponent):
-            return -max_depth + depth - 1
+            return self.max_depth + depth - 1
 
         # if there are no moves left the game is a tie, return neutral reward
         remaining_moves = self.get_remaining_moves()
@@ -211,7 +211,7 @@ class Game(ABC):
             return 0
 
         # if the max depth is reached and no win occurs, evaluate the board state
-        if depth == max_depth:
+        if depth == self.max_depth:
             return self.evaluate_early(player, opponent)
 
         # recursively call the minimax algorithm for each move
@@ -221,7 +221,7 @@ class Game(ABC):
             for move in remaining_moves:
                 # place the token, get the maximum score for the player, and remove the token
                 self.place_token(move, player)
-                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
+                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, alpha, beta))
                 self.remove_token(move)
 
                 # alpha-beta pruning
@@ -236,7 +236,7 @@ class Game(ABC):
             for move in remaining_moves:
                 # place the token, get the maximum score for the player, and remove the token
                 self.place_token(move, opponent)
-                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
+                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, alpha, beta))
                 self.remove_token(move)
 
                 # alpha-beta pruning
@@ -315,6 +315,8 @@ class Game(ABC):
 
         # get the parameters from the command line arguments
         player1, player2, games, max_depth = get_from_args(args)
+        if max_depth is None:
+            max_depth = board_size[0] * board_size[1] if board_size is not None else cls.max_moves
         visualise = "-v" in args or player1 == "human" or player2 == "human"
 
         # if either player is a qlearning agent, load the q tables

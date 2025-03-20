@@ -46,7 +46,7 @@ def get_from_args(args):
         player1 = param_or_default(args, "-p1", "minimax")
         player2 = param_or_default(args, "-p2", "algo")
         games = param_or_default(args, "-g", 1)
-        max_depth = param_or_default(args, "-d", sys.maxsize)
+        max_depth = param_or_default(args, "-d", None)
     except:
         print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
         exit()
