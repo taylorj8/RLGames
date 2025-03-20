@@ -18,7 +18,7 @@ class Game(ABC):
     max_moves = 0
     start_instructions = ""
 
-    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_tables=None):
+    def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_tables=None, minimax_cache=None):
         self.visualise = visualise
         self.players: Tuple[Player, Player] = (player1, player2)
         self.cells = []
@@ -28,6 +28,9 @@ class Game(ABC):
         if q_tables is None:
             q_tables = {}
         self.q_tables = q_tables
+        if minimax_cache is None:
+            minimax_cache = {}
+        self.minimax_cache = minimax_cache
 
     # check if the game is over, i.e. a win or a tie
     def game_over(self):
@@ -43,6 +46,7 @@ class Game(ABC):
         self.print("The game ended in a tie." if winner_index == 2 else f"Player {winner_index + 1} wins!")
         self.print(self.get_board())
         self.await_key()
+        self.save_minimax_cache()
         return winner_index
 
     # the main game loop
@@ -179,6 +183,9 @@ class Game(ABC):
     # this is the same for both games - game specific logic is overridden in the respective classes
     # alpha and beta are used for the alpha-beta pruning optimisation - if they are not provided, pruning is not used
     def minimax_choose_move(self, alpha=None, beta=None) -> int:
+        state = self.get_state()
+        if state in self.minimax_cache:
+            return self.minimax_cache[state]
         player = self.current_token
         best_score = float("-inf")
         best_move = 0
@@ -194,6 +201,7 @@ class Game(ABC):
             if score > best_score:
                 best_move = move
                 best_score = score
+        self.minimax_cache[state] = best_move
         return best_move
 
     # the minimax algorithm
@@ -276,6 +284,12 @@ class Game(ABC):
     def get_tokens() -> tuple[str, str]:
         pass
 
+    def save_minimax_cache(self):
+        if self.minimax_cache:
+            size = f"{self.width}x{self.height}_" if self.__class__.__name__ == "Connect4" else ""
+            file_name = f"minimax_cache/{self.__class__.__name__}_{size}{self.max_depth}"
+            save_to_file(file_name, self.minimax_cache)
+
     # sets up the training environment for qlearning
     @classmethod
     def training_setup(cls, board_size=None):
@@ -315,6 +329,8 @@ class Game(ABC):
 
         # get the parameters from the command line arguments
         player1, player2, games, max_depth = get_from_args(args)
+        if max_depth is None:
+            max_depth = board_size[0] * board_size[1] if cls.__name__ == "Connect4" else cls.max_moves
         visualise = "-v" in args or player1 == "human" or player2 == "human"
 
         # if either player is a qlearning agent, load the q tables
@@ -323,13 +339,18 @@ class Game(ABC):
             size = f"{board_size[0]}x{board_size[1]}_" if cls.__name__ == "Connect4" else ""
             q_tables = load_q_tables(cls.__name__, cls.get_tokens(), size, True)
 
+        minimax_cache = {}
+        if "-c" in args:
+            size = f"{board_size[0]}x{board_size[1]}_" if cls.__name__ == "Connect4" else ""
+            minimax_cache = load_from_file(f"minimax_cache/{cls.__name__}_{size}{max_depth}", True, False)
+
         # initialise the players
         player1 = Player(player1)
         player2 = Player(player2)
 
         # play the games, recording the wins/losses/ties
         stats = [0, 0, 0]
-        game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
+        game = cls(player1, player2, visualise, board_size, max_depth, q_tables, minimax_cache)
         game.start_message()
         for i in trange(games):
             # the starting player alternates each game

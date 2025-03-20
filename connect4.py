@@ -13,8 +13,8 @@ BLANK = "  "
 # implements the methods specific to the Connect4 game
 class Connect4(Game):
     input_name = "column"
-    def __init__(self, player1, player2, visualise, board_size=(7, 6), max_depth=100, q_table=None):
-        super().__init__(player1, player2, visualise, max_depth, q_table)
+    def __init__(self, player1, player2, visualise, board_size=(7, 6), max_depth=100, q_table=None, minimax_cache=None):
+        super().__init__(player1, player2, visualise, max_depth, q_table, minimax_cache)
         self.width = board_size[0]
         self.height = board_size[1]
         self.cells = [[BLANK] * self.width for _ in range(self.height)]

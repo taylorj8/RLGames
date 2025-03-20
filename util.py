@@ -46,7 +46,7 @@ def get_from_args(args):
         player1 = param_or_default(args, "-p1", "minimax")
         player2 = param_or_default(args, "-p2", "algo")
         games = param_or_default(args, "-g", 1)
-        max_depth = param_or_default(args, "-d", sys.maxsize)
+        max_depth = param_or_default(args, "-d", None)
     except:
         print("Usage: python connect4.py -p1 <player1> -p2 <player2> -g <number of games>")
         exit()
@@ -54,21 +54,31 @@ def get_from_args(args):
 
 
 # load the two q-tables for the game
-def load_q_tables(game: str, tokens: list[str], size="", pickled=False) -> dict:
-    return {tokens[0]: load_q_table(f"{game}_{size}first", pickled), tokens[1]: load_q_table(f"{game}_{size}second", pickled)}
+def load_q_tables(game: str, tokens: tuple[str, str], size="", pickled=False) -> dict:
+    return {tokens[0]: load_from_file(f"q_tables/{game}_{size}first", pickled), tokens[1]: load_from_file(f"q_tables/{game}_{size}second", pickled)}
 
 
-# load a q-table from a file
+# load a dictionary from a file
 # handles both json and pickle files
-def load_q_table(name: str, pickled: bool) -> dict:
-    file_name = f"q_tables/{name}.pkl" if pickled else f"q_tables/{name}.json"
+def load_from_file(name: str, pickled: bool, exit_if_missing=True) -> dict:
+    file_name = f"{name}.pkl" if pickled else f"{name}.json"
     mode = 'rb' if pickled else 'r'
     if not os.path.exists(file_name):
-        print(f"Q-learning has not been trained for {name}.")
-        exit()
+        if exit_if_missing:
+            print(f"Missing file: {name}.")
+            exit()
+        return {}
     with open(file_name, mode) as file:
         if pickled:
             return pickle.load(file)
         else:
             table = json.load(file)
         return {k: {int(k2): v2 for k2, v2 in v.items()} for k, v in table.items()}
+
+
+# save the dictionary to a file
+def save_to_file(file_name: str, data=dict, pickled=False):
+    file_name = f"{file_name}.pkl" if pickled else f"{file_name}.json"
+    mode = 'wb' if pickled else 'w'
+    with open(file_name, mode) as file:
+        pickle.dump(data, file) if pickled else json.dump(data, file)

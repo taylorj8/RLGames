@@ -36,8 +36,9 @@ python tictactoe.py [options]
 - `-p1 <player1>`: Set the type of player 1. Default is `minimax`.
 - `-p2 <player2>`: Set the type of player 2. Default is `algo`.
 - `-g <number of games>`: Set the number of games to play. Default is `1`.
-- `-d <max depth>`: Set the maximum depth for the minimax algorithm. Default is `sys.maxsize`.
+- `-d <max depth>`: Set the maximum depth for the minimax algorithm`.
 - `-v`: Enable visual mode.
+- `-c`: Enable caching for the minimax algorithm.
 - `-w <width>`: Set the width of the board (Connect4 only). Must be between `4` and `9`. Default is `7`.
 - `-h <height>`: Set the height of the board (Connect4 only). Must be between `4` and `9`. Default is `6`.
 - `-train <batches>`: Train Q-learning agents for the specified number of batches.

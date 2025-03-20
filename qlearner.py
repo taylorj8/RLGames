@@ -1,8 +1,6 @@
-import json
-import pickle
 import random
 from tqdm import trange
-from util import Parameters
+from util import Parameters, save_to_file
 
 # default q value for states
 default_q = 0.0
@@ -159,7 +157,7 @@ class QLearner:
 
         # save the q_table after training
         file_name = self.get_file_name(params.goes_first)
-        self.save_q_table(file_name, True)
+        save_to_file(file_name, self.q_table, True)
 
     # train the agent based on the parameters
     # allows to train both agents one after the other, or just one
@@ -176,10 +174,3 @@ class QLearner:
         order = "first" if goes_first else "second"
         size = f"{self.game.width}x{self.game.height}_" if self.game.__class__.__name__ == "Connect4" else ""
         return f"q_tables/{self.game.__class__.__name__}_{size}{order}"
-
-    # save the q-table to a file
-    def save_q_table(self, file_name: str, pickled=False):
-        file_name = f"{file_name}.pkl" if pickled else f"{file_name}.json"
-        mode = 'wb' if pickled else 'w'
-        with open(file_name, mode) as file:
-            pickle.dump(self.q_table, file) if pickled else json.dump(self.q_table, file)
