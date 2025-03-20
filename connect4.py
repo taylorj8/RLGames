@@ -1,7 +1,6 @@
 import random
 import time
 from typing import override
-from readchar import readkey
 import sys
 
 from game import Game, clear_screen
