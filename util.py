@@ -57,10 +57,11 @@ def load_q_tables(game: str, tokens: list[str], size="", pickled=False) -> dict:
 
 def load_q_table(name: str, pickled: bool) -> dict:
     file_name = f"q_tables/{name}.pkl" if pickled else f"q_tables/{name}.json"
+    mode = 'rb' if pickled else 'r'
     if not os.path.exists(file_name):
         print(f"Q-learning has not been trained for {name}.")
         exit()
-    with open(file_name, "r") as file:
+    with open(file_name, mode) as file:
         if pickled:
             return pickle.load(file)
         else:

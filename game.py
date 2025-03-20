@@ -220,15 +220,15 @@ class Game(ABC):
         batches = param_or_default(args, "-train", 10)
         batch_size = param_or_default(args, "-b", 50000)
         seed = param_or_default(args, "-s", random.randint(0, 1000000))
-        game = cls(Player("qlearn"), Player("random"), False, board_size)
+        game = cls(Player("qlearn"), Player("algo"), False, board_size)
 
         if cls.__name__ == "TicTacToe":
             first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.05)
             second_parameters = Parameters(False, 20.0, -100.0, 5.0, 0.0, 0.15)
         else:
             grid_size = board_size[0] * board_size[1]
-            first_parameters = Parameters(True, grid_size + 15.0, -grid_size - 10.0, -5.0, 0.05, 0.02)
-            second_parameters = Parameters(False, grid_size + 15.0, -grid_size - 10.0, -5.0, 0.5, 0.5)
+            first_parameters = Parameters(True, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.25, 0.05)
+            second_parameters = Parameters(False, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.3, 0.06)
 
         order = param_or_default(args, "-o", "both")
 

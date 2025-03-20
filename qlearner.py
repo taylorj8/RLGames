@@ -15,13 +15,13 @@ class QLearner:
         self.batches = batches
         self.batch_size = batch_size
         self.alpha = 0.1
-        self.gamma = 0.9
-        self.epsilon = 1.0
+        self.gamma = 0.95
+        self.epsilon = 0.95
 
     def reset(self):
         self.q_table = {}
         self.alpha = 0.1
-        self.epsilon = 1.0
+        self.epsilon = 0.95
 
     def get_moves_from_state(self, state: str) -> list[int]:
         if self.game.__class__.__name__ == "Connect4":
@@ -85,7 +85,10 @@ class QLearner:
                         state_history.append(state)
                         move_history.append(move)
                     else:
-                        move = random.choice(self.game.get_remaining_moves())
+                        if random.uniform(0, 1) < 0.5:
+                            move = random.choice(self.game.get_remaining_moves())
+                        else:
+                            move = self.game.algorithm_choose_move()
 
                     self.game.place_token(move, token)
                     state = self.game.get_state()
@@ -109,8 +112,8 @@ class QLearner:
                     final_reward *= self.gamma # Discount reward slightly for earlier moves
                 self.game.reset()
 
-                self.alpha = max(0.01, self.alpha * 0.99999)
-                self.epsilon = max(0.1, self.epsilon * 0.99999)
+                self.alpha = max(0.01, self.alpha * 0.999999)
+                self.epsilon = max(0.1, self.epsilon * 0.999999)
 
             self.game.q_tables[agent] = self.q_table
 
