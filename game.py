@@ -24,10 +24,10 @@ class Game(ABC):
         self.cells = []
         self.remaining_cells = None
         self.max_depth = max_depth
+        self.current_token = self.get_tokens()[0]
         if q_tables is None:
             q_tables = {}
         self.q_tables = q_tables
-        self.current_token = self.get_tokens()[0]
 
     # check if the game is over, i.e. a win or a tie
     def game_over(self):
@@ -65,10 +65,10 @@ class Game(ABC):
         winner_index = self.players.index(player) if self.check_win() else 2
         return winner_index
 
+    # choose a move based on the player type
     def choose_move(self, player: Player) -> int:
         match player.type:
             case "human":
-                clear_screen()
                 move = self.human_choose_move()
             case "random":
                 move = random.choice(self.get_remaining_moves())
@@ -162,17 +162,18 @@ class Game(ABC):
     # handles invalid input
     def human_choose_move(self) -> int:
         while True:
+            clear_screen()
             print(f"Player {self.current_token}, choose a {self.input_name}:\n{self.get_board()}")
             key = readkey()
             if key.isdigit() and key != "0":
                 key = int(key)
                 if key in self.get_remaining_moves():
+                    clear_screen()
                     return key
 
             clear_screen()
             print(f"Select a valid {self.input_name}.\n{self.get_board(self.remaining_cells)}\nPress any button to continue.")
             readkey()
-            clear_screen()
 
     # choose a move based on the minimax algorithm
     # this is the same for both games - game specific logic is overridden in the respective classes
