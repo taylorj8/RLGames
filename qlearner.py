@@ -151,7 +151,7 @@ class QLearner:
                 winner = self.game.play(not params.goes_first)
                 self.game.reset()
                 stats[winner] += 1
-            print(f"Wins: {stats[0]} | Losses: {stats[1]} | Draws: {stats[2]}")
+            print(f"Wins: {stats[1]} | Losses: {stats[2]} | Draws: {stats[0]}")
 
             # if the agent reaches the draw/loss thresholds, stop training
             if stats[1] <= testing_games * params.loss_threshold and stats[2] <= testing_games * params.draw_threshold:

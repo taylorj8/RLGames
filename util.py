@@ -9,6 +9,7 @@ from dataclasses import dataclass
 # class used so players of the same type can be differentiated
 @dataclass
 class Player:
+    number: int
     type: str
 
 

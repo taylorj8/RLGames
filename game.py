@@ -21,7 +21,7 @@ class Game(ABC):
     def __init__(self, player1: Player, player2: Player, visualise: bool, max_depth: int = 42, q_tables=None):
         self.visualise = visualise
         self.players: Tuple[Player, Player] = (player1, player2)
-        self.cells = []
+        self.columns = []
         self.remaining_cells = None
         self.max_depth = max_depth
         self.current_token = self.get_tokens()[0]
@@ -35,15 +35,15 @@ class Game(ABC):
 
     # runs the game loop and handles the game end
     def play(self, reverse_order=False) -> int:
-        winner_index = self.game_loop(reverse_order)
+        winner = self.game_loop(reverse_order)
 
         # print the win message and the final board state
         if self.visualise:
             clear_screen()
-        self.print("The game ended in a tie." if winner_index == 2 else f"Player {winner_index + 1} wins!")
+        self.print("The game ended in a tie." if winner == 0 else f"Player {winner} wins!")
         self.print(self.get_board())
         self.await_key()
-        return winner_index
+        return winner
 
     # the main game loop
     # reverse_order is used to alternate the starting player
@@ -61,15 +61,15 @@ class Game(ABC):
             # if no win, swap the tokens and repeat
             self.swap_tokens()
             self.print(f"Player {self.current_token}\n{self.get_board()}")
-        # if the board is full there is no winner, the game is a tie; return 2
-        winner_index = self.players.index(player) if self.check_win() else 2
-        return winner_index
+        # if the board is full and there is no winner, the game is a tie; return 0
+        winner = player.number if self.check_win() else 0
+        return winner
 
     # choose a move based on the player type
     def choose_move(self, player: Player) -> int:
         match player.type:
             case "human":
-                move = self.human_choose_move()
+                move = self.human_choose_move(player.number)
             case "random":
                 move = random.choice(self.get_remaining_moves())
             case "algo":
@@ -160,10 +160,10 @@ class Game(ABC):
     # allows the human player to choose a move
     # reads the key pressed and returns the corresponding cell
     # handles invalid input
-    def human_choose_move(self) -> int:
+    def human_choose_move(self, player_number: int) -> int:
         while True:
             clear_screen()
-            print(f"Player {self.current_token}, choose a {self.input_name}:\n{self.get_board()}")
+            print(f"Player {player_number}, choose a {self.input_name}:\n{self.get_board()}")
             key = readkey()
             if key.isdigit() and key != "0":
                 key = int(key)
@@ -286,7 +286,7 @@ class Game(ABC):
         seed = param_or_default(args, "-s", random.randint(0, 1000000))
         order = param_or_default(args, "-o", "both")
         # set up the game
-        game = cls(Player("qlearn"), Player("algo"), False, board_size)
+        game = cls(Player(1, "qlearn"), Player(2, "random"), False, board_size)
 
         # set the parameters for the qlearning agents
         # allows for different parameters depending on the game and whether the agent goes first or second
@@ -297,8 +297,8 @@ class Game(ABC):
             second_parameters = Parameters(False, 50.0, -100.0, 2.0, 0.0, 0.9)
         else:
             grid_size = board_size[0] * board_size[1]
-            first_parameters = Parameters(True, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.25, 0.05)
-            second_parameters = Parameters(False, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.3, 0.06)
+            first_parameters = Parameters(True, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.05, 0.05)
+            second_parameters = Parameters(False, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.15, 0.05)
 
         # train the agents
         QLearner(game, batches, batch_size, seed).train(first_parameters, second_parameters, order)
@@ -320,14 +320,16 @@ class Game(ABC):
         # if either player is a qlearning agent, load the q tables
         q_tables = {}
         if player1 == "qlearn" or player2 == "qlearn":
+            print("Loading q tables...")
             size = f"{board_size[0]}x{board_size[1]}_" if cls.__name__ == "Connect4" else ""
             q_tables = load_q_tables(cls.__name__, cls.get_tokens(), size, True)
+            clear_screen()
 
         # initialise the players
-        player1 = Player(player1)
-        player2 = Player(player2)
+        player1 = Player(1, player1)
+        player2 = Player(2, player2)
 
-        # play the games, recording the wins/losses/ties
+        # play the games, recording the ties/wins/losses
         stats = [0, 0, 0]
         game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
         game.start_message()
@@ -339,6 +341,6 @@ class Game(ABC):
 
         # print the final stats
         clear_screen()
-        print(f"Player 1 ({player1.type}) wins: {stats[0]}")
-        print(f"Player 2 ({player2.type}) wins: {stats[1]}")
-        print(f"Ties: {stats[2]}")
+        print(f"Player 1 ({player1.type}) wins: {stats[1]}")
+        print(f"Player 2 ({player2.type}) wins: {stats[2]}")
+        print(f"Ties: {stats[0]}")

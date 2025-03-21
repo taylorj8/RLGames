@@ -17,7 +17,7 @@ class Connect4(Game):
         super().__init__(player1, player2, visualise, max_depth, q_table)
         self.width = board_size[0]
         self.height = board_size[1]
-        self.cells = [[BLANK] * self.width for _ in range(self.height)]
+        self.columns = [[BLANK] * self.height for _ in range(self.width)]
         self.cols = [x for x in range(1, self.width + 1)]
 
         self.max_moves = self.width * self.height
@@ -26,7 +26,7 @@ class Connect4(Game):
     # reset the game back to its initial state
     @override
     def reset(self):
-        self.cells = [[BLANK] * self.width for _ in range(self.height)]
+        self.columns = [[BLANK] * self.height for _ in range(self.width)]
         self.cols = [x for x in range(1, self.width + 1)]
         self.current_token = self.get_tokens()[0]
 
@@ -36,8 +36,8 @@ class Connect4(Game):
         if token is None:
             token = self.current_token
         for i in range(self.height):
-            if self.cells[i][col - 1] == BLANK:
-                self.cells[i][col - 1] = token
+            if self.columns[col - 1][i] == BLANK:
+                self.columns[col - 1][i] = token
                 # if token placed in top row, remove column from available moves
                 if i == self.height - 1:
                     self.cols[col - 1] = " "
@@ -47,8 +47,8 @@ class Connect4(Game):
     @override
     def remove_token(self, col):
         for i in reversed(range(self.height)):
-            if self.cells[i][col - 1] != BLANK:
-                self.cells[i][col - 1] = BLANK
+            if self.columns[col - 1][i] != BLANK:
+                self.columns[col - 1][i] = BLANK
                 self.cols[col - 1] = col
                 return
 
@@ -64,7 +64,7 @@ class Connect4(Game):
         board = "╻" + "    ╻" * self.width + "\n"
 
         for row in reversed(range(self.height)):  # start from top row
-            board += "┃ " + " ┃ ".join(self.cells[row][:self.width]) + " ┃\n"
+            board += "┃ " + " ┃ ".join(self.columns[col][row] for col in range(self.width)) + " ┃\n"
             if row > 0:
                 board += "┣" + "━━━━╋" * (self.width - 1) + "━━━━┫\n"
 
@@ -85,27 +85,27 @@ class Connect4(Game):
                     return "R"
                 case "🔵":
                     return "B"
-        return "".join([convert_token(x) for row in self.cells for x in row])
+        return "".join([convert_token(self.columns[col][row]) for row in range(self.height) for col in range(self.width)])
 
     # check for a win by checking all possible winning subsets
     # if a token is provided, check if that token has won
     @override
     def check_win(self, token=None) -> bool:
-        for i in range(self.height):
-            for j in range(self.width):
+        for col in range(self.width):
+            for row in range(self.height):
                 potential_wins = []
                 # horizontal
-                if j <= self.width - 4:
-                    potential_wins.append([self.cells[i][j + k] for k in range(4)])
+                if col <= self.width - 4:
+                    potential_wins.append([self.columns[col + k][row] for k in range(4)])
                 # vertical
-                if i <= self.height - 4:
-                    potential_wins.append([self.cells[i + k][j] for k in range(4)])
+                if row <= self.height - 4:
+                    potential_wins.append([self.columns[col][row + k] for k in range(4)])
                 # diagonal (\)
-                if i <= self.height - 4 and j <= self.width - 4:
-                    potential_wins.append([self.cells[i + k][j + k] for k in range(4)])
+                if col <= self.width - 4 and row <= self.height - 4:
+                    potential_wins.append([self.columns[col + k][row + k] for k in range(4)])
                 # diagonal (/)
-                if i <= self.height - 4 and j >= 3:
-                    potential_wins.append([self.cells[i + k][j - k] for k in range(4)])
+                if col <= self.width - 4 and row >= 3:
+                    potential_wins.append([self.columns[col + k][row - k] for k in range(4)])
                 # check if any of the potential wins are valid
                 if token is None:
                     outcomes = [subset[0] != BLANK and all(x == subset[0] for x in subset) for subset in potential_wins]
@@ -120,20 +120,18 @@ class Connect4(Game):
     # a run a sequence of 4 tokens containing only the given token and blanks
     # a run of 3 is one move away from winning
     def count_runs(self, token, threshold):
-        c = self.cells
         run_count = 0
-        for i in range(self.height):
-            for j in range(self.width):
+        for col in range(self.width):
+            for row in range(self.height):
                 runs = []
-                if j <= self.width - 4:
-                    runs.append([c[i][j + k] for k in range(4)])
-                if i <= self.height - 4:
-                    runs.append([c[i + k][j] for k in range(4)])
-                if i <= self.height - 4 and j <= self.width - 4:
-                    runs.append([c[i + k][j + k] for k in range(4)])
-                if i <= self.height - 4 and j >= 3:
-                    runs.append([c[i + k][j - k] for k in range(4)])
-
+                if col <= self.width - 4:
+                    runs.append([self.columns[col + k][row] for k in range(4)])
+                if row <= self.height - 4:
+                    runs.append([self.columns[col][row + k] for k in range(4)])
+                if col <= self.width - 4 and row <= self.height - 4:
+                    runs.append([self.columns[col + k][row + k] for k in range(4)])
+                if col <= self.width - 4 and row >= 3:
+                    runs.append([self.columns[col + k][row - k] for k in range(4)])
                 run_count += sum(1 for subset in runs if subset.count(token) == threshold and subset.count(BLANK) == 4 - threshold)
         return run_count
 
