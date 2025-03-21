@@ -18,7 +18,8 @@ class Connect4(Game):
         self.width = board_size[0]
         self.height = board_size[1]
         self.columns = [[BLANK] * self.height for _ in range(self.width)]
-        self.cols = [x for x in range(1, self.width + 1)]
+        self.top_tokens = [0] * self.width
+        self.column_guide = [x for x in range(1, self.width + 1)]
 
         self.max_moves = self.width * self.height
         self.start_instructions = f"Welcome to Connect 4! The game is played using the keyboard with 1-{self.width} corresponding to each column."
@@ -27,35 +28,34 @@ class Connect4(Game):
     @override
     def reset(self):
         self.columns = [[BLANK] * self.height for _ in range(self.width)]
-        self.cols = [x for x in range(1, self.width + 1)]
+        self.column_guide = [x for x in range(1, self.width + 1)]
+        self.top_tokens = [0] * self.width
         self.current_token = self.get_tokens()[0]
 
     # place a token on top of the column
     @override
     def place_token(self, col: int, token: str = None):
+        index = col-1
         if token is None:
             token = self.current_token
-        for i in range(self.height):
-            if self.columns[col - 1][i] == BLANK:
-                self.columns[col - 1][i] = token
-                # if token placed in top row, remove column from available moves
-                if i == self.height - 1:
-                    self.cols[col - 1] = " "
-                return
+        self.columns[index][self.top_tokens[index]] = token
+        self.top_tokens[index] += 1
+        if self.top_tokens[index] == self.height:
+            self.column_guide[index] = " "
 
     # remove the top token from a column
     @override
-    def remove_token(self, col):
-        for i in reversed(range(self.height)):
-            if self.columns[col - 1][i] != BLANK:
-                self.columns[col - 1][i] = BLANK
-                self.cols[col - 1] = col
-                return
+    def remove_token(self, col: int):
+        index = col-1
+        if self.top_tokens[index] == self.height:
+            self.column_guide[index] = col
+        self.top_tokens[index] -= 1
+        self.columns[index][self.top_tokens[index]] = BLANK
 
     # get the available moves
     @override
     def get_remaining_moves(self) -> list[int]:
-        return [x for x in self.cols if type(x) == int]
+        return [x for x in self.column_guide if type(x) == int]
 
     # algorithmically construct the board for display
     # allows the board to be constructed based on the size provided by the user
@@ -69,7 +69,7 @@ class Connect4(Game):
                 board += "┣" + "━━━━╋" * (self.width - 1) + "━━━━┫\n"
 
         board += "┗" + "━━━━┻" * (self.width - 1) + "━━━━┛\n"
-        board += "  " + "    ".join(map(str, self.cols[:self.width]))  # column guides at the bottom
+        board += "  " + "    ".join(map(str, self.column_guide[:self.width]))  # column guides at the bottom
 
         return board
 
