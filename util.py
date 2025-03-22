@@ -24,6 +24,47 @@ class Parameters:
     draw_threshold: float
 
 
+# class for game stats
+class Stats:
+    def __init__(self, game:str, player1: str, player2: str, optional_params: str = ""):
+        self.game = game
+        self.id = f"{player1}_{player2}_{optional_params}"
+        self.games = 0
+        self.wins = 0
+        self.losses = 0
+        self.draws = 0
+        self.win_history = []
+        self.number_of_moves = []
+        self.game_times = []
+
+    def __str__(self):
+        return f"""Wins: {self.wins} | Losses: {self.losses} | Draws: {self.draws}
+Avg. moves: {sum(self.number_of_moves) / self.games} | Avg. time: {sum(self.game_times) / self.games}"""
+
+    def update(self, winner: int, moves: int, time: float):
+        self.add_winner(winner)
+        self.number_of_moves.append(moves)
+        self.game_times.append(time)
+
+    def add_winner(self, winner: int):
+        self.games += 1
+        self.win_history.append(winner)
+        match winner:
+            case 0:
+                self.draws += 1
+            case 1:
+                self.wins += 1
+            case 2:
+                self.losses += 1
+
+    def save_to_csv(self,):
+        with open(f"stats/game/{self.id}.csv", "w") as file:
+            file.write("Winner,Number of moves,Time\n")
+            for i in range(self.games):
+                file.write(f"{self.win_history[i]},{self.number_of_moves[i]},{self.game_times[i]}\n")
+
+
+
 # clear the screen
 def clear_screen():
     os.system('cls' if os.name=='nt' else 'clear')
@@ -44,8 +85,8 @@ def param_or_default(args, flag, default):
 # get the values of the parameters from the command line arguments
 def get_from_args(args):
     try:
-        player1 = param_or_default(args, "-p1", "minimax")
-        player2 = param_or_default(args, "-p2", "algo")
+        player1 = param_or_default(args, "-p1", "human")
+        player2 = param_or_default(args, "-p2", "human")
         games = param_or_default(args, "-g", 1)
         max_depth = param_or_default(args, "-d", sys.maxsize)
     except:

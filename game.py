@@ -7,6 +7,7 @@ from tqdm import trange
 
 from qlearner import QLearner
 from util import *
+import time
 
 BLANK = " "
 
@@ -34,8 +35,10 @@ class Game(ABC):
         return self.check_win() or not self.get_remaining_moves()
 
     # runs the game loop and handles the game end
-    def play(self, reverse_order=False) -> int:
-        winner = self.game_loop(reverse_order)
+    def play(self, reverse_order=False) -> tuple[int, int, float]:
+        start_time = time.time()
+        winner, move = self.game_loop(reverse_order)
+        duration = time.time() - start_time
 
         # print the win message and the final board state
         if self.visualise:
@@ -43,13 +46,14 @@ class Game(ABC):
         self.print("The game ended in a tie." if winner == 0 else f"Player {winner} wins!")
         self.print(self.get_board())
         self.await_key()
-        return winner
+        return winner, move, duration
 
     # the main game loop
     # reverse_order is used to alternate the starting player
-    def game_loop(self, reverse_order: bool) -> int:
+    def game_loop(self, reverse_order: bool) -> tuple[int, int]:
         offset = 1 if reverse_order else 0
         # repeats until the board is full, at which point the game is a tie
+        moves = 0
         for i in range(self.max_moves):
             player = self.players[(i + offset) % 2]
             pos = self.choose_move(player)  # get the move based on the player type
@@ -57,13 +61,14 @@ class Game(ABC):
             # place the token and check for a win
             self.place_token(pos)
             if self.check_win():
+                moves = i+1
                 break
             # if no win, swap the tokens and repeat
             self.swap_tokens()
             self.print(f"Player {self.current_token}\n{self.get_board()}")
         # if the board is full and there is no winner, the game is a tie; return 0
-        winner = player.number if self.check_win() else 0
-        return winner
+        winner, moves = (player.number, moves) if self.check_win() else (0, self.max_moves)
+        return winner, moves + 1
 
     # choose a move based on the player type
     def choose_move(self, player: Player) -> int:
@@ -330,17 +335,17 @@ class Game(ABC):
         player2 = Player(2, player2)
 
         # play the games, recording the ties/wins/losses
-        stats = [0, 0, 0]
+        stats = Stats(cls.__name__, player1.type, player2.type)
         game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
         game.start_message()
         for i in trange(games):
             # the starting player alternates each game
-            winner_index = game.play(reverse_order=bool(i % 2))
-            stats[winner_index] += 1
+            winner, moves, duration = game.play(reverse_order=bool(i % 2))
+            stats.update(winner, moves, duration)
             game.reset()
 
         # print the final stats
         clear_screen()
-        print(f"Player 1 ({player1.type}) wins: {stats[1]}")
-        print(f"Player 2 ({player2.type}) wins: {stats[2]}")
-        print(f"Ties: {stats[0]}")
+        print(f"Player 1 ({player1.type}) wins: {stats.wins}")
+        print(f"Player 2 ({player2.type}) wins: {stats.losses}")
+        print(f"Ties: {stats.draws}")

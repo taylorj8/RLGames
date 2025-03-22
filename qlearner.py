@@ -2,7 +2,7 @@ import json
 import pickle
 import random
 from tqdm import trange
-from util import Parameters
+from util import Parameters, Stats
 
 # default q value for states
 default_q = 0.0
@@ -144,17 +144,18 @@ class QLearner:
             self.game.q_tables[agent] = self.q_table
             total_episodes = i * self.batch_size
             print(f"Total episodes: {total_episodes}")
-            stats = [0, 0, 0]
+            stats = Stats(self.game.__class__.__name__, agent, opponent, f"{total_episodes} episodes")
             testing_games = 1000
             # play 1000 games and see if the agent reaches the thresholds
             for j in range(testing_games):
-                winner = self.game.play(not params.goes_first)
+                winner, moves, duration = self.game.play(not params.goes_first)
                 self.game.reset()
-                stats[winner] += 1
-            print(f"Wins: {stats[1]} | Losses: {stats[2]} | Draws: {stats[0]}")
+                stats.update(winner, moves, duration)
+            print(stats)
+            stats.save_to_csv()
 
             # if the agent reaches the draw/loss thresholds, stop training
-            if stats[1] <= testing_games * params.loss_threshold and stats[2] <= testing_games * params.draw_threshold:
+            if stats.losses <= testing_games * params.loss_threshold and stats.draws <= testing_games * params.draw_threshold:
                 break
 
         # save the q_table after training
