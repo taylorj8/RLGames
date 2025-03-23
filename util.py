@@ -57,8 +57,8 @@ Avg. moves: {sum(self.number_of_moves) / self.games} | Avg. time: {sum(self.game
             case 2:
                 self.losses += 1
 
-    def save_to_csv(self,):
-        with open(f"stats/game/{self.id}.csv", "w") as file:
+    def save_to_csv(self):
+        with open(f"stats/{self.game}/{self.id}_{self.games}.csv", "w") as file:
             file.write("Winner,Number of moves,Time\n")
             for i in range(self.games):
                 file.write(f"{self.win_history[i]},{self.number_of_moves[i]},{self.game_times[i]}\n")

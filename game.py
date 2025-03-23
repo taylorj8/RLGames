@@ -68,10 +68,10 @@ class Game(ABC):
             self.print(f"Player {self.current_token}\n{self.get_board()}")
         # if the board is full and there is no winner, the game is a tie; return 0
         winner, moves = (player.number, moves) if self.check_win() else (0, self.max_moves)
-        return winner, moves + 1
+        return winner, moves
 
     # choose a move based on the player type
-    def choose_move(self, player: Player) -> int:
+    def choose_move(self, player: Player) -> tuple[int, list]:
         match player.type:
             case "human":
                 move = self.human_choose_move(player.number)
@@ -187,13 +187,14 @@ class Game(ABC):
         player = self.current_token
         best_score = float("-inf")
         best_move = 0
+        state_count = [0]  # node count initialised as a list to pass by reference
 
         opponent = self.get_other(player)
         for move in self.get_remaining_moves():
             # place the token, get the best score for that move, and remove the token
             # repeat this for each move to find the best one
             self.place_token(move, player)
-            score = self.minimax(player, opponent, 0, False, self.max_depth, alpha, beta)
+            score = self.minimax(player, opponent, 0, False, self.max_depth, alpha, beta, state_count)
             self.remove_token(move)
 
             if score > best_score:
@@ -202,7 +203,10 @@ class Game(ABC):
         return best_move
 
     # the minimax algorithm
-    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth, alpha, beta) -> int:
+    def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth: int, alpha: float, beta: float, state_count: list[int]) -> int:
+        state_count[0] += 1
+        if state_count[0] % 10000 == 0: # todo remove
+            print(state_count[0], end=", ")
         # reward the player if they win, penalise if the opponent wins
         # reward is higher if the win is sooner, penalty is higher if the loss is later
         if self.check_win(player):
@@ -226,7 +230,7 @@ class Game(ABC):
             for move in remaining_moves:
                 # place the token, get the maximum score for the player, and remove the token
                 self.place_token(move, player)
-                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
+                best_score = max(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta, state_count))
                 self.remove_token(move)
 
                 # alpha-beta pruning
@@ -241,7 +245,7 @@ class Game(ABC):
             for move in remaining_moves:
                 # place the token, get the maximum score for the player, and remove the token
                 self.place_token(move, opponent)
-                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta))
+                best_score = min(best_score, self.minimax(player, opponent, depth + 1, not maxing, max_depth, alpha, beta, state_count))
                 self.remove_token(move)
 
                 # alpha-beta pruning
@@ -349,3 +353,7 @@ class Game(ABC):
         print(f"Player 1 ({player1.type}) wins: {stats.wins}")
         print(f"Player 2 ({player2.type}) wins: {stats.losses}")
         print(f"Ties: {stats.draws}")
+
+        print(stats)
+
+        stats.save_to_csv()
