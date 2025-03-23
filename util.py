@@ -35,19 +35,24 @@ class Stats:
         self.draws = 0
         self.win_history = []
         self.number_of_moves = []
-        self.game_times = []
+        self.states_explored = []
+        self.duration = 0.0
 
     def __str__(self):
-        return f"""Wins: {self.wins} | Losses: {self.losses} | Draws: {self.draws}
-Avg. moves: {sum(self.number_of_moves) / self.games} | Avg. time: {sum(self.game_times) / self.games}"""
+        avg_states = sum(self.states_explored) / self.games
+        string = f"""Wins: {self.wins} | Losses: {self.losses} | Draws: {self.draws}
+Avg. moves: {sum(self.number_of_moves) / self.games} | Total duration: {self.duration}"""
+        if avg_states > 0:
+            string += f" | Avg. states explored: {avg_states}"
+        return string
 
-    def update(self, winner: int, moves: int, time: float):
+    def update(self, winner: int, moves: int, states_explored: int = 0):
+        self.games += 1
         self.add_winner(winner)
         self.number_of_moves.append(moves)
-        self.game_times.append(time)
+        self.states_explored.append(states_explored)
 
     def add_winner(self, winner: int):
-        self.games += 1
         self.win_history.append(winner)
         match winner:
             case 0:
@@ -59,9 +64,9 @@ Avg. moves: {sum(self.number_of_moves) / self.games} | Avg. time: {sum(self.game
 
     def save_to_csv(self):
         with open(f"stats/{self.game}/{self.id}_{self.games}.csv", "w") as file:
-            file.write("Winner,Number of moves,Time\n")
+            file.write("Winner,Number of moves" + (",States explored\n" if self.states_explored else "\n"))
             for i in range(self.games):
-                file.write(f"{self.win_history[i]},{self.number_of_moves[i]},{self.game_times[i]}\n")
+                file.write(f"{self.win_history[i]},{self.number_of_moves[i]}" + (f",{self.states_explored[i]}\n" if self.states_explored[0] != 0 else "\n"))
 
 
 

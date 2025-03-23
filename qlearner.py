@@ -10,10 +10,7 @@ default_q = 0.0
 
 # handles all the logic for training a q-learning agent
 class QLearner:
-    def __init__(self, game, batches: int, batch_size: int, seed: int):
-        random.seed(seed)
-        print("Seed:", seed)
-
+    def __init__(self, game, batches: int, batch_size: int):
         self.q_table = {} # state: (move: q_value)
         self.game = game
         self.batches = batches
@@ -148,9 +145,9 @@ class QLearner:
             testing_games = 1000
             # play 1000 games and see if the agent reaches the thresholds
             for j in range(testing_games):
-                winner, moves, duration = self.game.play(not params.goes_first)
+                winner, moves = self.game.play(not params.goes_first)
                 self.game.reset()
-                stats.update(winner, moves, duration)
+                stats.update(winner, moves)
             print(stats)
             stats.save_to_csv()
 

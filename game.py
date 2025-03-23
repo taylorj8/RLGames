@@ -35,10 +35,8 @@ class Game(ABC):
         return self.check_win() or not self.get_remaining_moves()
 
     # runs the game loop and handles the game end
-    def play(self, reverse_order=False) -> tuple[int, int, float]:
-        start_time = time.time()
-        winner, move = self.game_loop(reverse_order)
-        duration = time.time() - start_time
+    def play(self, reverse_order=False) -> tuple[int, int, int]:
+        winner, move, states_explored = self.game_loop(reverse_order)
 
         # print the win message and the final board state
         if self.visualise:
@@ -46,17 +44,21 @@ class Game(ABC):
         self.print("The game ended in a tie." if winner == 0 else f"Player {winner} wins!")
         self.print(self.get_board())
         self.await_key()
-        return winner, move, duration
+        return winner, move, states_explored
 
     # the main game loop
     # reverse_order is used to alternate the starting player
-    def game_loop(self, reverse_order: bool) -> tuple[int, int]:
+    def game_loop(self, reverse_order: bool) -> tuple[int, int, int]:
         offset = 1 if reverse_order else 0
         # repeats until the board is full, at which point the game is a tie
         moves = 0
+        total_states_explored = 0
         for i in range(self.max_moves):
             player = self.players[(i + offset) % 2]
-            pos = self.choose_move(player)  # get the move based on the player type
+            # get the move based on the player type
+            # states_explored is 0 unless the player is a minimax agent
+            pos, states_explored = self.choose_move(player)
+            total_states_explored += states_explored
 
             # place the token and check for a win
             self.place_token(pos)
@@ -68,10 +70,11 @@ class Game(ABC):
             self.print(f"Player {self.current_token}\n{self.get_board()}")
         # if the board is full and there is no winner, the game is a tie; return 0
         winner, moves = (player.number, moves) if self.check_win() else (0, self.max_moves)
-        return winner, moves
+        return winner, moves, total_states_explored
 
     # choose a move based on the player type
-    def choose_move(self, player: Player) -> tuple[int, list]:
+    def choose_move(self, player: Player) -> tuple[int, int]:
+        states_explored = 0
         match player.type:
             case "human":
                 move = self.human_choose_move(player.number)
@@ -80,15 +83,15 @@ class Game(ABC):
             case "algo":
                 move = self.algorithm_choose_move()
             case "minimax":
-                move = self.minimax_choose_move()
+                move, states_explored = self.minimax_choose_move()
             case "minimax_ab":
-                move = self.minimax_choose_move(float("-inf"), float("inf"))
+                move, states_explored = self.minimax_choose_move(float("-inf"), float("inf"))
             case "qlearn":
                 move = self.qlearn_choose_move()
             case _:
                 print("Invalid player type.")
                 exit()
-        return move
+        return move, states_explored
 
     # function to print a message if visualisation is enabled
     def print(self, message: str):
@@ -183,7 +186,7 @@ class Game(ABC):
     # choose a move based on the minimax algorithm
     # this is the same for both games - game specific logic is overridden in the respective classes
     # alpha and beta are used for the alpha-beta pruning optimisation - if they are not provided, pruning is not used
-    def minimax_choose_move(self, alpha=None, beta=None) -> int:
+    def minimax_choose_move(self, alpha=None, beta=None) -> tuple[int, int]:
         player = self.current_token
         best_score = float("-inf")
         best_move = 0
@@ -200,13 +203,13 @@ class Game(ABC):
             if score > best_score:
                 best_move = move
                 best_score = score
-        return best_move
+        return best_move, state_count[0]
 
     # the minimax algorithm
     def minimax(self, player: str, opponent: str, depth: int, maxing: bool, max_depth: int, alpha: float, beta: float, state_count: list[int]) -> int:
         state_count[0] += 1
-        if state_count[0] % 10000 == 0: # todo remove
-            print(state_count[0], end=", ")
+        # if state_count[0] % 10000 == 0:
+        #     print(state_count[0], end=", ")
         # reward the player if they win, penalise if the opponent wins
         # reward is higher if the win is sooner, penalty is higher if the loss is later
         if self.check_win(player):
@@ -292,7 +295,6 @@ class Game(ABC):
         # get the parameters from the command line arguments
         batches = param_or_default(args, "-train", 10)
         batch_size = param_or_default(args, "-b", 50000)
-        seed = param_or_default(args, "-s", random.randint(0, 1000000))
         order = param_or_default(args, "-o", "both")
         # set up the game
         game = cls(Player(1, "qlearn"), Player(2, "random"), False, board_size)
@@ -310,7 +312,7 @@ class Game(ABC):
             second_parameters = Parameters(False, grid_size + 5.0, -grid_size - 5.0, -2.0, 0.15, 0.05)
 
         # train the agents
-        QLearner(game, batches, batch_size, seed).train(first_parameters, second_parameters, order)
+        QLearner(game, batches, batch_size).train(first_parameters, second_parameters, order)
         print("Training complete.")
         exit()
 
@@ -319,6 +321,10 @@ class Game(ABC):
     @classmethod
     def start(cls, board_size=None):
         args = sys.argv
+        seed = param_or_default(args, "-s", random.randint(0, 1000000))
+        random.seed(seed)
+        print("Seed:", seed)
+
         if "-train" in args:
             cls.training_setup(board_size)
 
@@ -342,11 +348,13 @@ class Game(ABC):
         stats = Stats(cls.__name__, player1.type, player2.type)
         game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
         game.start_message()
+        start_time = time.time()
         for i in trange(games):
             # the starting player alternates each game
-            winner, moves, duration = game.play(reverse_order=bool(i % 2))
-            stats.update(winner, moves, duration)
+            winner, moves, states_explored = game.play(reverse_order=bool(i % 2))
+            stats.update(winner, moves, states_explored)
             game.reset()
+        stats.duration = time.time() - start_time
 
         # print the final stats
         clear_screen()
