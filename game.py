@@ -297,14 +297,14 @@ class Game(ABC):
         batch_size = param_or_default(args, "-b", 50000)
         order = param_or_default(args, "-o", "both")
         # set up the game
-        game = cls(Player(1, "qlearn"), Player(2, "random"), False, board_size)
+        game = cls(Player(1, "qlearn"), Player(2, "algo"), False, board_size)
 
         # set the parameters for the qlearning agents
         # allows for different parameters depending on the game and whether the agent goes first or second
         # done this way as the strategies for going first and second can be different
         # so different rewards give better/worse results
         if cls.__name__ == "TicTacToe":
-            first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.1)
+            first_parameters = Parameters(True, 20.0, -20.0, 2.0, 0.0, 0.15)
             second_parameters = Parameters(False, 50.0, -100.0, 2.0, 0.0, 0.9)
         else:
             grid_size = board_size[0] * board_size[1]
@@ -344,8 +344,13 @@ class Game(ABC):
         player1 = Player(1, player1)
         player2 = Player(2, player2)
 
+        optional_params = ""
+        if max_depth != sys.maxsize:
+            optional_params = f"_{max_depth}"
+        if board_size is not None:
+            optional_params += f"_{board_size[0]}x{board_size[1]}"
+        stats = Stats(cls.__name__, player1.type, player2.type, optional_params)
         # play the games, recording the ties/wins/losses
-        stats = Stats(cls.__name__, player1.type, player2.type)
         game = cls(player1, player2, visualise, board_size, max_depth, q_tables)
         game.start_message()
         start_time = time.time()
@@ -361,7 +366,5 @@ class Game(ABC):
         print(f"Player 1 ({player1.type}) wins: {stats.wins}")
         print(f"Player 2 ({player2.type}) wins: {stats.losses}")
         print(f"Ties: {stats.draws}")
-
-        print(stats)
 
         stats.save_to_csv()

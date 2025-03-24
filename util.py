@@ -28,7 +28,8 @@ class Parameters:
 class Stats:
     def __init__(self, game:str, player1: str, player2: str, optional_params: str = ""):
         self.game = game
-        self.id = f"{player1}_{player2}_{optional_params}"
+        self.id = f"{player1}_{player2}{optional_params}"
+        self.history = []
         self.games = 0
         self.wins = 0
         self.losses = 0
@@ -62,11 +63,39 @@ Avg. moves: {sum(self.number_of_moves) / self.games} | Total duration: {self.dur
             case 2:
                 self.losses += 1
 
+    def reset(self):
+        self.games = 0
+        self.wins = 0
+        self.losses = 0
+        self.draws = 0
+        self.win_history = []
+        self.number_of_moves = []
+        self.states_explored = []
+        self.duration = 0.0
+
+    def append_to_csv(self):
+        file_name = f"stats/{self.game}/{self.id}.csv"
+        if not os.path.exists(file_name):
+            self.save_to_csv()
+        else:
+            with open(file_name, "a") as file:
+                file.write(f"{self.win_history[-1]},{self.number_of_moves[-1]}" + (f",{self.states_explored[-1]}\n" if self.states_explored[0] != 0 else "\n"))
+
     def save_to_csv(self):
         with open(f"stats/{self.game}/{self.id}_{self.games}.csv", "w") as file:
             file.write("Winner,Number of moves" + (",States explored\n" if self.states_explored else "\n"))
             for i in range(self.games):
                 file.write(f"{self.win_history[i]},{self.number_of_moves[i]}" + (f",{self.states_explored[i]}\n" if self.states_explored[0] != 0 else "\n"))
+
+    def save_to_csv_q(self):
+        file_name = f"stats/qlearn/{self.game}/{self.id}_{self.games}.csv"
+        if not os.path.exists(file_name):
+            with open(file_name, "w") as file:
+                file.write("Wins,Losses,Draws,States\n")
+                file.write(f"{self.wins},{self.losses},{self.draws},{self.states_explored[-1]}\n")
+        else:
+            with open(file_name, "a") as file:
+                file.write(f"{self.wins},{self.losses},{self.draws},{self.states_explored[-1]}\n")
 
 
 

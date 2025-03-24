@@ -1,6 +1,8 @@
 import json
 import pickle
 import random
+import time
+
 from tqdm import trange
 from util import Parameters, Stats
 
@@ -88,6 +90,7 @@ class QLearner:
         # play games in batches
         # after each batch, test the agent against an opponent
         # if the agent loses more than the loss threshold and ties more than the draw threshold, continue training
+        start_time = time.time()
         for i in range(1, self.batches+1):
             for e in trange(self.batch_size):
                 token = tokens[0]
@@ -141,19 +144,32 @@ class QLearner:
             self.game.q_tables[agent] = self.q_table
             total_episodes = i * self.batch_size
             print(f"Total episodes: {total_episodes}")
-            stats = Stats(self.game.__class__.__name__, agent, opponent, f"{total_episodes} episodes")
+
+            pars = "_first" if params.goes_first else "_second"
+            if self.game.__class__.__name__ == "Connect4":
+                pars += f"_{self.game.width}x{self.game.height}"
+
+            stats = Stats(self.game.__class__.__name__, self.game.players[0].type, self.game.players[1].type, pars)
             testing_games = 1000
             # play 1000 games and see if the agent reaches the thresholds
             for j in range(testing_games):
-                winner, moves = self.game.play(not params.goes_first)
+                winner, moves, _ = self.game.play(not params.goes_first)
                 self.game.reset()
                 stats.update(winner, moves)
+            stats.states_explored.append(len(self.q_table))
             print(stats)
-            stats.save_to_csv()
+            stats.save_to_csv_q()
 
             # if the agent reaches the draw/loss thresholds, stop training
             if stats.losses <= testing_games * params.loss_threshold and stats.draws <= testing_games * params.draw_threshold:
                 break
+
+        duration = time.time() - start_time
+        with open("stats/duration.txt", "a") as file:
+            if self.game.__class__.__name__ == "Connect4":
+                file.write(f"{self.game.__class__.__name__} {self.game.width}x{self.game.height} {params.goes_first}: {duration}\n")
+            else:
+                file.write(f"{self.game.__class__.__name__} {params.goes_first}: {duration}\n")
 
         # save the q_table after training
         file_name = self.get_file_name(params.goes_first)
